@@ -114,6 +114,12 @@ jobs:
         cd examples
         cargo build --verbose
 
+    - name: Run re-export binary
+      run: cargo run --manifest-path examples/Cargo.toml --bin re-export-test
+
+    - name: Run bitcoinkernal tests binary
+      run: cargo run --manifest-path examples/Cargo.toml --bin bitcoinkernal-tests
+
     - name: Check formatting
       run: cargo fmt -- --check
 
