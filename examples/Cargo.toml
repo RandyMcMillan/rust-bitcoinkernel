@@ -13,6 +13,10 @@ path = "src/silentpaymentscanner.rs"
 name = "re-export-test"
 path = "src/re-export-test.rs"
 
+[[bin]]
+name = "bitcoinkernal-tests"
+path = "src/bitcoinkernal-tests.rs"
+
 [dependencies]
 silentpayments = "0.1"
 bitcoin = "0.31"
