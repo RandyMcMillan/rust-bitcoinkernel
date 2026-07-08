@@ -1,6 +1,6 @@
 use std::any::{type_name, type_name_of_val};
 
-use bitcoinkernel::{
+use examples::{
     prelude::*, Block, BLOCK_CHECK_ALL, BlockHash, BlockHeader, BlockTreeEntry, Chain, ChainType,
     Context, ContextBuilder, KernelError, Log, LogLevel, Logger, NotificationCallbackRegistry,
     ProcessBlockResult, Transaction, TxOut, VERIFY_ALL,
@@ -59,7 +59,7 @@ fn re_exports_flags_and_prelude_traits() {
     }
 
     print_log_trait::<TestLog>();
-    print_script_pubkey_ext::<bitcoinkernel::ScriptPubkey>();
+    print_script_pubkey_ext::<examples::ScriptPubkey>();
     print_transaction_ext::<Transaction>();
     print_tx_out_ext::<TxOut>();
 }
