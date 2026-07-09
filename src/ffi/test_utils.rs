@@ -3,6 +3,7 @@ macro_rules! test_owned_trait_requirements {
     ($test_name:ident, $owned:ty, $ffi_type:ty) => {
         #[test]
         fn $test_name() {
+            println!("running {}", stringify!($test_name));
             use crate::ffi::sealed::{AsPtr, FromMutPtr};
 
             fn assert_clone<T: Clone>() {}
@@ -23,6 +24,7 @@ macro_rules! test_ref_trait_requirements {
     ($test_name:ident, $ref:ty, $ffi_type:ty) => {
         #[test]
         fn $test_name() {
+            println!("running {}", stringify!($test_name));
             use crate::ffi::sealed::{AsPtr, FromPtr};
 
             fn assert_clone<T: Clone>() {}
@@ -45,6 +47,7 @@ macro_rules! test_owned_clone_and_send {
     ($test_name:ident, $obj1:expr, $obj2:expr) => {
         #[test]
         fn $test_name() {
+            println!("running {}", stringify!($test_name));
             let obj1 = $obj1;
             let obj2 = $obj2;
             let clone1 = obj1.clone();
@@ -85,6 +88,7 @@ macro_rules! test_ref_copy {
     ($test_name:ident, $owned:expr) => {
         #[test]
         fn $test_name() {
+            println!("running {}", stringify!($test_name));
             let owned = $owned;
             let ref_val = owned.as_ref();
 
