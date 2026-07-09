@@ -96,6 +96,7 @@ mod tests {
         let context = Arc::new(create_context());
 
         let temp_dir = TempDir::new("test_chainman_regtest");
+        println!("integration setup: temp dir {}", temp_dir.data_dir());
         (context, temp_dir)
     }
 
@@ -114,11 +115,17 @@ mod tests {
         temp_dir: &TempDir,
     ) -> Result<ChainstateManager, KernelError> {
         let block_data = read_block_data();
+        println!("integration chain setup: loading {} blocks", block_data.len());
 
         let chainman = ChainstateManager::new(context, temp_dir.data_dir(), temp_dir.blocks_dir())?;
 
         for raw_block in block_data.iter() {
             let block = Block::new(raw_block.as_slice())?;
+            println!(
+                "integration chain setup: block bytes={}, hash={}",
+                raw_block.len(),
+                block.hash()
+            );
             let result = chainman.process_block(&block);
             assert!(result.is_new_block());
             assert!(!result.is_duplicate());
@@ -234,6 +241,7 @@ mod tests {
 
     #[test]
     fn test_logger() {
+        println!("running test_logger");
         let (_, _) = testing_setup();
 
         let logger_1 = Some(Logger::new(TestLog {}).unwrap());
@@ -861,9 +869,22 @@ mod tests {
         outputs: Vec<TxOut>,
         flags: ScriptVerificationFlags,
     ) -> Result<(), KernelError> {
+        println!(
+            "verify_test: input={}, amount={}, outputs={}, flags={:?}",
+            input,
+            amount,
+            outputs.len(),
+            flags
+        );
         let spent_script_pubkey =
             ScriptPubkey::try_from(hex::decode(spent).unwrap().as_slice()).unwrap();
         let spending_tx = Transaction::new(hex::decode(spending).unwrap().as_slice()).unwrap();
+        println!(
+            "verify_test: spending_txid={}, inputs={}, outputs={}",
+            spending_tx.txid(),
+            spending_tx.input_count(),
+            spending_tx.output_count()
+        );
         let tx_data = PrecomputedTransactionData::new(&spending_tx, &outputs).unwrap();
         verify(
             &spent_script_pubkey,
@@ -878,6 +899,7 @@ mod tests {
 
     #[test]
     fn test_traits() {
+        println!("running test_traits");
         fn is_sync<T: Sync>() {}
         fn is_send<T: Send>() {}
         is_sync::<ScriptPubkey>();
