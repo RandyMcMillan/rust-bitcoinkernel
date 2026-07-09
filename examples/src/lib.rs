@@ -29,6 +29,8 @@ mod tests {
         let _ = std::mem::size_of::<Block>();
         let _ = std::mem::size_of::<ChainType>();
         let _ = std::mem::size_of::<Context>();
+
+        println!("examples::lib public re-exports are available");
     }
 
     #[test]
@@ -44,5 +46,7 @@ mod tests {
             script_verify.source().map(ToString::to_string),
             Some("Script verification failed".to_string())
         );
+
+        println!("examples::lib KernelError formatting is valid");
     }
 }

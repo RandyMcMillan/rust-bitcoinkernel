@@ -95,5 +95,7 @@ mod tests {
 
         let _ = VERIFY_ALL;
         let _ = BLOCK_CHECK_ALL;
+
+        println!("re-export-test re-exports are available");
     }
 }

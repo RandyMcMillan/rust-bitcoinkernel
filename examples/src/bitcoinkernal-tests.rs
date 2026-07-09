@@ -95,5 +95,7 @@ mod tests {
 
         let _ = VERIFY_ALL;
         let _ = BLOCK_CHECK_ALL;
+
+        println!("bitcoinkernal-tests re-exports are available");
     }
 }

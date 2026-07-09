@@ -358,6 +358,8 @@ mod tests {
         assert_eq!(strip_trailing_newline("message\n"), "message");
         assert_eq!(strip_trailing_newline("message\r\n"), "message");
         assert_eq!(strip_trailing_newline("message"), "message");
+
+        println!("silentpaymentscanner newline stripping is valid");
     }
 
     #[test]
@@ -373,6 +375,8 @@ mod tests {
             input.to_string(),
             format!("txid: {}, vout: 7", Txid::from_slice(&[0u8; 32]).unwrap())
         );
+
+        println!("silentpaymentscanner transaction input display is valid");
     }
 
     #[test]
@@ -385,6 +389,8 @@ mod tests {
             ScanError::SilentPayments("oops".into()).to_string(),
             "Silent payments error: oops"
         );
+
+        println!("silentpaymentscanner error formatting is valid");
     }
 
     #[test]
@@ -405,5 +411,7 @@ mod tests {
 
         let pubkeys = extract_taproot_pubkeys(&outputs);
         assert_eq!(pubkeys, vec![xonly]);
+
+        println!("silentpaymentscanner taproot extraction is valid");
     }
 }
