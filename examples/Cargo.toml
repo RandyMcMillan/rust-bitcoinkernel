@@ -3,7 +3,7 @@ name = "examples"
 version = "0.0.1"
 edition = "2021"
 publish = false
-default-run = "re-export-test"
+default-run = "silentpaymentscanner"
 
 [[bin]]
 name = "silentpaymentscanner"
