@@ -189,6 +189,7 @@ mod tests {
 
     #[test]
     fn test_registry_stores_single_handler() {
+        println!("running test_registry_stores_single_handler");
         let mut registry = ValidationCallbackRegistry::new();
 
         registry.register_block_checked(|_block, state: BlockValidationStateRef| {
@@ -200,12 +201,14 @@ mod tests {
 
     #[test]
     fn test_closure_trait_implementation() {
+        println!("running test_closure_trait_implementation");
         let handler = |_block, _state: BlockValidationStateRef<'_>| {};
         let _: Box<dyn BlockCheckedCallback> = Box::new(handler);
     }
 
     #[test]
     fn test_block_checked_registration() {
+        println!("running test_block_checked_registration");
         let mut registry = ValidationCallbackRegistry::new();
         registry.register_block_checked(|_block, _state: BlockValidationStateRef<'_>| {});
         assert!(registry.block_checked_handler.is_some());
@@ -213,6 +216,7 @@ mod tests {
 
     #[test]
     fn test_new_pow_valid_block_registration() {
+        println!("running test_new_pow_valid_block_registration");
         fn handler(_entry: BlockTreeEntry, _block: Block) {}
 
         let mut registry = ValidationCallbackRegistry::new();
@@ -222,6 +226,7 @@ mod tests {
 
     #[test]
     fn test_block_connected_registration() {
+        println!("running test_block_connected_registration");
         fn handler(_block: Block, _entry: BlockTreeEntry) {}
 
         let mut registry = ValidationCallbackRegistry::new();
@@ -231,6 +236,7 @@ mod tests {
 
     #[test]
     fn test_block_disconnected_registration() {
+        println!("running test_block_disconnected_registration");
         fn handler(_block: Block, _entry: BlockTreeEntry) {}
 
         let mut registry = ValidationCallbackRegistry::new();
@@ -240,6 +246,7 @@ mod tests {
 
     #[test]
     fn test_registry_default() {
+        println!("running test_registry_default");
         let registry = ValidationCallbackRegistry::default();
         assert!(registry.block_checked_handler.is_none());
         assert!(registry.new_pow_valid_block_handler.is_none());
@@ -249,6 +256,7 @@ mod tests {
 
     #[test]
     fn test_block_checked_invocation() {
+        println!("running test_block_checked_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = Arc::clone(&called);
 
@@ -268,6 +276,7 @@ mod tests {
 
     #[test]
     fn test_new_pow_valid_block_invocation() {
+        println!("running test_new_pow_valid_block_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = Arc::clone(&called);
 
@@ -287,6 +296,7 @@ mod tests {
 
     #[test]
     fn test_block_connected_invocation() {
+        println!("running test_block_connected_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = Arc::clone(&called);
 
@@ -306,6 +316,7 @@ mod tests {
 
     #[test]
     fn test_block_disconnected_invocation() {
+        println!("running test_block_disconnected_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = Arc::clone(&called);
 

@@ -323,6 +323,7 @@ mod tests {
     // SynchronizationState tests
     #[test]
     fn test_synchronization_state_conversions() {
+        println!("running test_synchronization_state_conversions");
         let init_reindex = SynchronizationState::InitReindex;
         let btck_init_reindex: btck_SynchronizationState = init_reindex.into();
         let back_to_init_reindex: SynchronizationState = btck_init_reindex.into();
@@ -341,6 +342,7 @@ mod tests {
 
     #[test]
     fn test_synchronization_state_values() {
+        println!("running test_synchronization_state_values");
         assert_eq!(
             SynchronizationState::InitReindex as u8,
             btck_SynchronizationState_INIT_REINDEX
@@ -357,6 +359,7 @@ mod tests {
 
     #[test]
     fn test_synchronization_state_equality() {
+        println!("running test_synchronization_state_equality");
         assert_eq!(
             SynchronizationState::InitReindex,
             SynchronizationState::InitReindex
@@ -373,6 +376,7 @@ mod tests {
 
     #[test]
     fn test_synchronization_state_clone() {
+        println!("running test_synchronization_state_clone");
         let state = SynchronizationState::PostInit;
         let cloned = state;
         assert_eq!(state, cloned);
@@ -381,6 +385,7 @@ mod tests {
     // Warning tests
     #[test]
     fn test_warning_conversions() {
+        println!("running test_warning_conversions");
         let unknown_rules = Warning::UnknownNewRulesActivated;
         let btck_unknown_rules: btck_Warning = unknown_rules.into();
         let back_to_unknown_rules: Warning = btck_unknown_rules.into();
@@ -394,6 +399,7 @@ mod tests {
 
     #[test]
     fn test_warning_values() {
+        println!("running test_warning_values");
         assert_eq!(
             Warning::UnknownNewRulesActivated as u8,
             btck_Warning_UNKNOWN_NEW_RULES_ACTIVATED
@@ -406,6 +412,7 @@ mod tests {
 
     #[test]
     fn test_warning_equality() {
+        println!("running test_warning_equality");
         assert_eq!(
             Warning::UnknownNewRulesActivated,
             Warning::UnknownNewRulesActivated
@@ -418,6 +425,7 @@ mod tests {
 
     #[test]
     fn test_warning_clone() {
+        println!("running test_warning_clone");
         let warning = Warning::LargeWorkInvalidChain;
         let cloned = warning;
         assert_eq!(warning, cloned);
@@ -426,6 +434,7 @@ mod tests {
     // ValidationMode tests
     #[test]
     fn test_validation_mode_conversions() {
+        println!("running test_validation_mode_conversions");
         let valid = ValidationMode::Valid;
         let btck_valid: btck_ValidationMode = valid.into();
         let back_to_valid: ValidationMode = btck_valid.into();
@@ -444,6 +453,7 @@ mod tests {
 
     #[test]
     fn test_validation_mode_values() {
+        println!("running test_validation_mode_values");
         assert_eq!(ValidationMode::Valid as u8, btck_ValidationMode_VALID);
         assert_eq!(ValidationMode::Invalid as u8, btck_ValidationMode_INVALID);
         assert_eq!(
@@ -454,6 +464,7 @@ mod tests {
 
     #[test]
     fn test_validation_mode_equality() {
+        println!("running test_validation_mode_equality");
         assert_eq!(ValidationMode::Valid, ValidationMode::Valid);
         assert_ne!(ValidationMode::Valid, ValidationMode::Invalid);
         assert_ne!(ValidationMode::Invalid, ValidationMode::InternalError);
@@ -469,6 +480,7 @@ mod tests {
     // BlockValidationResult tests
     #[test]
     fn test_block_validation_result_conversions() {
+        println!("running test_block_validation_result_conversions");
         let unset = BlockValidationResult::Unset;
         let btck_unset: btck_BlockValidationResult = unset.into();
         let back_to_unset: BlockValidationResult = btck_unset.into();

@@ -273,6 +273,7 @@ mod tests {
     // LogCategory tests
     #[test]
     fn test_log_category_conversions() {
+        println!("running test_log_category_conversions");
         let all = LogCategory::All;
         let btck_all: btck_LogCategory = all.into();
         let back_to_all: LogCategory = btck_all.into();
@@ -331,6 +332,7 @@ mod tests {
 
     #[test]
     fn test_log_category_equality() {
+        println!("running test_log_category_equality");
         assert_eq!(LogCategory::All, LogCategory::All);
         assert_ne!(LogCategory::All, LogCategory::Bench);
         assert_ne!(LogCategory::Validation, LogCategory::Kernel);
@@ -338,6 +340,7 @@ mod tests {
 
     #[test]
     fn test_log_category_clone() {
+        println!("running test_log_category_clone");
         let validation = LogCategory::Validation;
         let cloned = validation;
         assert_eq!(validation, cloned);
@@ -346,6 +349,7 @@ mod tests {
     // LogLevel tests
     #[test]
     fn test_log_level_conversions() {
+        println!("running test_log_level_conversions");
         let trace = LogLevel::Trace;
         let btck_trace: btck_LogLevel = trace.into();
         let back_to_trace: LogLevel = btck_trace.into();
@@ -364,6 +368,7 @@ mod tests {
 
     #[test]
     fn test_log_level_equality() {
+        println!("running test_log_level_equality");
         assert_eq!(LogLevel::Info, LogLevel::Info);
         assert_ne!(LogLevel::Info, LogLevel::Debug);
         assert_ne!(LogLevel::Debug, LogLevel::Trace);
@@ -371,6 +376,7 @@ mod tests {
 
     #[test]
     fn test_log_level_clone() {
+        println!("running test_log_level_clone");
         let info = LogLevel::Info;
         let cloned = info;
         assert_eq!(info, cloned);
@@ -378,6 +384,7 @@ mod tests {
 
     #[test]
     fn test_logging_options_default() {
+        println!("running test_logging_options_default");
         let options = LoggingOptions::default();
         assert!(options.log_timestamps);
         assert!(!options.log_time_micros);
@@ -399,6 +406,7 @@ mod tests {
 
     #[test]
     fn test_logger_creation() {
+        println!("running test_logger_creation");
         let messages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let test_log = TestLog {
             messages: messages.clone(),
@@ -410,6 +418,7 @@ mod tests {
 
     #[test]
     fn test_logger_creation_with_options() {
+        println!("running test_logger_creation_with_options");
         let messages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let test_log = TestLog {
             messages: messages.clone(),
@@ -429,6 +438,7 @@ mod tests {
 
     #[test]
     fn test_logger_set_level_category() {
+        println!("running test_logger_set_level_category");
         let messages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let test_log = TestLog {
             messages: messages.clone(),
@@ -441,6 +451,7 @@ mod tests {
 
     #[test]
     fn test_logger_enable_category() {
+        println!("running test_logger_enable_category");
         let messages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let test_log = TestLog {
             messages: messages.clone(),
@@ -453,6 +464,7 @@ mod tests {
 
     #[test]
     fn test_logger_disable_category() {
+        println!("running test_logger_disable_category");
         let messages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let test_log = TestLog {
             messages: messages.clone(),
@@ -465,6 +477,7 @@ mod tests {
 
     #[test]
     fn test_all_log_categories() {
+        println!("running test_all_log_categories");
         let categories = [
             LogCategory::All,
             LogCategory::Bench,
@@ -494,6 +507,7 @@ mod tests {
 
     #[test]
     fn test_all_log_levels() {
+        println!("running test_all_log_levels");
         let levels = [LogLevel::Trace, LogLevel::Debug, LogLevel::Info];
 
         let messages = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
@@ -510,6 +524,7 @@ mod tests {
 
     #[test]
     fn test_global_set_logging_options() {
+        println!("running test_global_set_logging_options");
         let options = LoggingOptions {
             log_timestamps: false,
             log_time_micros: true,

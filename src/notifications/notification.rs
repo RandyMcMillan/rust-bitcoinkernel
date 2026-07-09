@@ -307,6 +307,7 @@ mod tests {
 
     #[test]
     fn test_registry_default() {
+        println!("running test_registry_default");
         let registry = NotificationCallbackRegistry::default();
         assert!(registry.block_tip_handler.is_none());
         assert!(registry.header_tip_handler.is_none());
@@ -319,6 +320,7 @@ mod tests {
 
     #[test]
     fn test_registry_stores_single_handler() {
+        println!("running test_registry_stores_single_handler");
         let mut registry = NotificationCallbackRegistry::new();
 
         registry.register_block_tip(|_state, _hash, progress| {
@@ -360,6 +362,7 @@ mod tests {
 
     #[test]
     fn test_closure_trait_implementation() {
+        println!("running test_closure_trait_implementation");
         let handler = |_state, _hash, _progress| {};
         let _: Box<dyn BlockTipCallback> = Box::new(handler);
 
@@ -384,6 +387,7 @@ mod tests {
 
     #[test]
     fn test_block_tip_callback_invocation() {
+        println!("running test_block_tip_callback_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = called.clone();
 
@@ -403,6 +407,7 @@ mod tests {
 
     #[test]
     fn test_header_tip_callback_invocation() {
+        println!("running test_header_tip_callback_invocation");
         let called = Arc::new(Mutex::new(false));
 
         let called_clone = called.clone();
@@ -424,6 +429,7 @@ mod tests {
 
     #[test]
     fn test_progress_callback_invocation() {
+        println!("running test_progress_callback_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = called.clone();
 
@@ -444,6 +450,7 @@ mod tests {
 
     #[test]
     fn test_warning_set_callback_invocation() {
+        println!("running test_warning_set_callback_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = called.clone();
 
@@ -462,6 +469,7 @@ mod tests {
 
     #[test]
     fn test_warning_unset_callback_invocation() {
+        println!("running test_warning_unset_callback_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = called.clone();
 
@@ -480,6 +488,7 @@ mod tests {
 
     #[test]
     fn test_flush_error_callback_invocation() {
+        println!("running test_flush_error_callback_invocation");
         let called = Arc::new(Mutex::new(false));
         let called_clone = called.clone();
 
@@ -498,6 +507,7 @@ mod tests {
 
     #[test]
     fn test_fatal_error_callback_invocation() {
+        println!("running test_fatal_error_callback_invocation");
         let called = Arc::new(Mutex::new(false));
 
         let called_clone = called.clone();
