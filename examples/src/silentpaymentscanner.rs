@@ -205,18 +205,7 @@ impl SilentPaymentScanner {
                 ScanError::SilentPayments(format!("Failed to calculate shared secret: {:?}", e))
             })?;
 
-        let pubkeys_to_check: Vec<XOnlyPublicKey> = tx_data
-            .outputs
-            .iter()
-            .filter_map(|script_pubkey| {
-                if script_pubkey.len() == 34 && script_pubkey[0] == 0x51 && script_pubkey[1] == 0x20
-                {
-                    XOnlyPublicKey::from_slice(&script_pubkey[2..]).ok()
-                } else {
-                    None
-                }
-            })
-            .collect();
+        let pubkeys_to_check = extract_taproot_pubkeys(&tx_data.outputs);
 
         if pubkeys_to_check.is_empty() {
             log::info!("pub keys to check is empty!");
@@ -249,8 +238,28 @@ impl Log for MainLog {
     fn log(&self, message: &str) {
         log::info!(
             target: "libbitcoinkernel",
-            "{}", message.strip_suffix("\r\n").or_else(|| message.strip_suffix('\n')).unwrap_or(message));
+            "{}", strip_trailing_newline(message));
     }
+}
+
+fn strip_trailing_newline(message: &str) -> &str {
+    message
+        .strip_suffix("\r\n")
+        .or_else(|| message.strip_suffix('\n'))
+        .unwrap_or(message)
+}
+
+fn extract_taproot_pubkeys(outputs: &[Vec<u8>]) -> Vec<XOnlyPublicKey> {
+    outputs
+        .iter()
+        .filter_map(|script_pubkey| {
+            if script_pubkey.len() == 34 && script_pubkey[0] == 0x51 && script_pubkey[1] == 0x20 {
+                XOnlyPublicKey::from_slice(&script_pubkey[2..]).ok()
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 fn setup_logging() -> Result<Logger, KernelError> {
@@ -335,5 +344,66 @@ fn main() {
     if let Err(e) = run() {
         eprintln!("Error: {}", e);
         process::exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bitcoin::hashes::Hash;
+    use bitcoin::Txid;
+
+    #[test]
+    fn strip_trailing_newline_handles_lf_and_crlf() {
+        assert_eq!(strip_trailing_newline("message\n"), "message");
+        assert_eq!(strip_trailing_newline("message\r\n"), "message");
+        assert_eq!(strip_trailing_newline("message"), "message");
+    }
+
+    #[test]
+    fn transaction_input_display_uses_txid_and_vout() {
+        let input = TransactionInput {
+            prevout_script: vec![],
+            script_sig: vec![],
+            witness: vec![],
+            outpoint: (vec![0u8; 32], 7),
+        };
+
+        assert_eq!(
+            input.to_string(),
+            format!("txid: {}, vout: 7", Txid::from_slice(&[0u8; 32]).unwrap())
+        );
+    }
+
+    #[test]
+    fn scan_error_display_formats_variants() {
+        assert_eq!(
+            ScanError::InvalidInput("bad input".into()).to_string(),
+            "Invalid input: bad input"
+        );
+        assert_eq!(
+            ScanError::SilentPayments("oops".into()).to_string(),
+            "Silent payments error: oops"
+        );
+    }
+
+    #[test]
+    fn extract_taproot_pubkeys_only_keeps_valid_outputs() {
+        let secp = Secp256k1::new();
+        let secret_key = SecretKey::from_slice(&[1u8; 32]).unwrap();
+        let keypair = secp256k1::Keypair::from_secret_key(&secp, &secret_key);
+        let (xonly, _) = XOnlyPublicKey::from_keypair(&keypair);
+
+        let mut valid_output = vec![0x51, 0x20];
+        valid_output.extend_from_slice(&xonly.serialize());
+
+        let outputs = vec![
+            valid_output,
+            vec![0x00, 0x20, 1, 2, 3],
+            vec![0x51, 0x20, 1, 2, 3],
+        ];
+
+        let pubkeys = extract_taproot_pubkeys(&outputs);
+        assert_eq!(pubkeys, vec![xonly]);
     }
 }
