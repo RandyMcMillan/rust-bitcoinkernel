@@ -98,6 +98,14 @@ cargo-run: 	### 	cargo-run
 	@. \$(HOME)/.cargo/env
 	cargo run --bin make-just
 
+
+## TODO setup cargo fuzz run ...
+
+## cd fuzz && cargo fuzz run block_roundtrip
+## cd fuzz && cargo fuzz run transaction_roundtrip
+## cd fuzz && cargo fuzz run script_verify
+## cd fuzz && cargo fuzz run chainman_process_block
+
 ##===============================================================================
 cargo-dist: 	### 	cargo-dist -h
 	cargo dist -h
