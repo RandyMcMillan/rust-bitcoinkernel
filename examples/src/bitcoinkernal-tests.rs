@@ -70,3 +70,30 @@ fn main() {
     re_exports_flags_and_prelude_traits();
     println!("re-export binary finished");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn binary_reexports_are_usable() {
+        fn assert_log<T: Log>() {}
+        fn assert_script_pubkey_ext<T: ScriptPubkeyExt>() {}
+        fn assert_transaction_ext<T: TransactionExt>() {}
+        fn assert_tx_out_ext<T: TxOutExt>() {}
+
+        struct TestLog;
+
+        impl Log for TestLog {
+            fn log(&self, _: &str) {}
+        }
+
+        assert_log::<TestLog>();
+        assert_script_pubkey_ext::<bitcoinkernel::ScriptPubkey>();
+        assert_transaction_ext::<Transaction>();
+        assert_tx_out_ext::<TxOut>();
+
+        let _ = VERIFY_ALL;
+        let _ = BLOCK_CHECK_ALL;
+    }
+}
