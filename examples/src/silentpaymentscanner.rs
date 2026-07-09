@@ -353,6 +353,10 @@ mod tests {
     use bitcoin::hashes::Hash;
     use bitcoin::Txid;
 
+    fn to_hex(bytes: &[u8]) -> String {
+        bytes.iter().map(|b| format!("{:02x}", b)).collect()
+    }
+
     #[test]
     fn strip_trailing_newline_handles_lf_and_crlf() {
         assert_eq!(strip_trailing_newline("message\n"), "message");
@@ -371,6 +375,15 @@ mod tests {
             outpoint: (vec![0u8; 32], 7),
         };
 
+        println!("transaction input debug: {:?}", input);
+        println!(
+            "transaction input content: prevout_script_len={}, script_sig_len={}, witness_items={}, outpoint_txid={}, vout={}",
+            input.prevout_script.len(),
+            input.script_sig.len(),
+            input.witness.len(),
+            Txid::from_slice(&input.outpoint.0).unwrap(),
+            input.outpoint.1
+        );
         assert_eq!(
             input.to_string(),
             format!("txid: {}, vout: 7", Txid::from_slice(&[0u8; 32]).unwrap())
@@ -410,6 +423,19 @@ mod tests {
         ];
 
         let pubkeys = extract_taproot_pubkeys(&outputs);
+        println!(
+            "taproot outputs: {:?}",
+            outputs
+                .iter()
+                .map(|output| format!(
+                    "len={}, prefix={}, payload={}",
+                    output.len(),
+                    to_hex(&output[..output.len().min(2)]),
+                    output.get(2..).map(to_hex).unwrap_or_default()
+                ))
+                .collect::<Vec<_>>()
+        );
+        println!("parsed taproot pubkeys: {:?}", pubkeys);
         assert_eq!(pubkeys, vec![xonly]);
 
         println!("silentpaymentscanner taproot extraction is valid");
