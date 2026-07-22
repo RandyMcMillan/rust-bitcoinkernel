@@ -168,6 +168,8 @@ private extension Int {
     }
 }
 
+private let recentTransactionsPollIntervalSeconds: UInt64 = 20
+
 struct ContentView: View {
     @State private var selectedNetwork = MempoolNetwork.mainnet
     @State private var recentTransactions: [RecentMempoolTransaction] = []
@@ -301,7 +303,7 @@ struct ContentView: View {
             }
         }
         .task(id: selectedNetwork) {
-            await loadRecentTransactions()
+            await pollRecentTransactions()
         }
     }
 
@@ -323,7 +325,7 @@ struct ContentView: View {
     }
 
     @MainActor
-    private func loadRecentTransactions() async {
+    private func pollRecentTransactions() async {
         let urls = selectedNetwork.recentTransactionsURLs
         guard !urls.isEmpty else {
             loadingRecentTransactions = false
@@ -332,10 +334,24 @@ struct ContentView: View {
             return
         }
 
+        recentTransactions = RecentMempoolStorage.load(for: selectedNetwork)
+
+        while !Task.isCancelled {
+            await refreshRecentTransactions(urls: urls)
+
+            do {
+                try await Task.sleep(nanoseconds: recentTransactionsPollIntervalSeconds * 1_000_000_000)
+            } catch {
+                break
+            }
+        }
+    }
+
+    @MainActor
+    private func refreshRecentTransactions(urls: [URL]) async {
         loadingRecentTransactions = true
         recentTransactionsError = nil
         recentTransactionsSourceLabel = nil
-        recentTransactions = RecentMempoolStorage.load(for: selectedNetwork)
 
         let startIndex = RecentMempoolSourceStorage.loadIndex(for: selectedNetwork, sourceCount: urls.count)
         var lastError: Error?
