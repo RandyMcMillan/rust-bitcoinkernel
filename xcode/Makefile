@@ -24,7 +24,7 @@ help:
 	@printf '%s\n' \
 		'make rust      - build the Rust library, bindings, and XCFramework' \
 		'make resolve   - resolve local Swift package dependencies' \
-		'make app       - build the iOS app for a generic simulator destination' \
+		'make app       - build the app via the Mac Catalyst path' \
 		'make catalyst  - build the app for Mac Catalyst' \
 		'make install   - install the Mac Catalyst app into ~/Applications' \
 		'make clean     - clean Rust and Xcode build artifacts'
