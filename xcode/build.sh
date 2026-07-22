@@ -35,7 +35,7 @@ TARGETDIR="${TARGETDIR:-target}"
 RELDIR="release"
 STATIC_LIB_NAME="lib${MY_CRATE}.a"
 NEW_HEADER_DIR="$PWD/out/include"
-XCFRAMEWORK_PATH="$PWD/${MY_CRATE}_framework.xcframework"
+XCFRAMEWORK_PATH="$PWD/${MY_CRATE}_framework.$$".xcframework
 
 case "$(uname -m)" in
     arm64)
@@ -80,6 +80,8 @@ SWIFT_SOURCES_PATH="${SWIFT_LIB_PATH}/Sources/${SWIFT_PROJECT_NAME}"
 mkdir -p "${SWIFT_ARTIFACTS_PATH}"
 rm -rf "${SWIFT_ARTIFACTS_PATH}/${SWIFT_CORE_NAME}.xcframework"
 cp -R "${XCFRAMEWORK_PATH}" "${SWIFT_ARTIFACTS_PATH}/${SWIFT_CORE_NAME}.xcframework"
+
+rm -rf "${XCFRAMEWORK_PATH}"
 
 # step 4 - move to SwiftLib Sources
 mkdir -p "${SWIFT_SOURCES_PATH}"
