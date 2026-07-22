@@ -165,17 +165,34 @@ struct ContentView: View {
                                         NavigationLink {
                                             TransactionDetailView(transaction: transaction)
                                         } label: {
-                                            VStack(alignment: .leading, spacing: 8) {
-                                                Text(transaction.txid)
-                                                    .font(.caption.monospaced())
-                                                    .foregroundStyle(.primary)
-                                                    .fixedSize(horizontal: false, vertical: true)
-                                                Text("fee \(transaction.fee) sat/vB  vsize \(transaction.vsize)  value \(transaction.value)")
-                                                    .font(.caption)
-                                                    .foregroundStyle(.secondary)
-                                                Text("Tap for details")
-                                                    .font(.caption2)
-                                                    .foregroundStyle(Color.accentColor)
+                                            VStack(alignment: .leading, spacing: 10) {
+                                                HStack(alignment: .firstTextBaseline) {
+                                                    VStack(alignment: .leading, spacing: 2) {
+                                                        Text("Transaction")
+                                                            .font(.headline)
+                                                            .foregroundStyle(.primary)
+                                                        Text(transaction.txid)
+                                                            .font(.caption.monospaced())
+                                                            .foregroundStyle(.secondary)
+                                                            .fixedSize(horizontal: false, vertical: true)
+                                                    }
+                                                    Spacer(minLength: 12)
+                                                    Text("Open")
+                                                        .font(.caption.bold())
+                                                        .foregroundStyle(.white)
+                                                        .padding(.horizontal, 10)
+                                                        .padding(.vertical, 6)
+                                                        .background(
+                                                            Capsule(style: .continuous)
+                                                                .fill(Color.accentColor)
+                                                        )
+                                                }
+
+                                                HStack(spacing: 12) {
+                                                    infoPill(title: "Fee", value: "\(transaction.fee) sat/vB")
+                                                    infoPill(title: "Size", value: "\(transaction.vsize) vB")
+                                                    infoPill(title: "Value", value: "\(transaction.value) sats")
+                                                }
                                             }
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .padding()
@@ -204,6 +221,23 @@ struct ContentView: View {
         .task(id: selectedNetwork) {
             await loadRecentTransactions()
         }
+    }
+
+    private func infoPill(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.caption.bold())
+                .foregroundStyle(.primary)
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color(.systemBackground))
+        )
     }
 
     @MainActor
