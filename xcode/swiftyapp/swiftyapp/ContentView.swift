@@ -25,7 +25,7 @@ struct ContentView: View {
         print("ContentView: body property accessed.")
         let helloMessage = rustHello()
         let sum = rustAdd(a: 10, b: 32)
-        let networkSummary = networkSummary(network: selectedNetwork)
+        let selectedNetworkSummary = networkSummary(network: selectedNetwork)
         let transactionSummary = transactionSummaryHex(rawHex: sampleTransactionHex)
         let blockSummary = blockSummaryHex(rawHex: sampleBlockHex)
         print("ContentView: rustHello() returned \(helloMessage)")
@@ -42,7 +42,7 @@ struct ContentView: View {
                 .foregroundStyle(.tint)
             Text(helloMessage)
             Text(String(sum))
-            Text(networkSummary.map { "\($0.name): \($0.description)" } ?? "network summary unavailable")
+            Text(selectedNetworkSummary.map { "\($0.name): \($0.description)" } ?? "network summary unavailable")
             Text(transactionSummary.map { "tx \($0.txid) (\($0.inputCount) in, \($0.outputCount) out)" } ?? "tx summary unavailable")
             Text(blockSummary.map { "block \($0.blockHash) (\($0.transactionCount) txs)" } ?? "block summary unavailable")
         }
