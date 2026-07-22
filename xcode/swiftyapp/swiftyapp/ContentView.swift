@@ -164,7 +164,7 @@ private enum RecentMempoolSourceStorage {
 
 private extension Int {
     func clamped(to range: Range<Int>) -> Int {
-        min(max(self, range.lowerBound), range.upperBound - 1)
+        Swift.min(Swift.max(self, range.lowerBound), range.upperBound - 1)
     }
 }
 
