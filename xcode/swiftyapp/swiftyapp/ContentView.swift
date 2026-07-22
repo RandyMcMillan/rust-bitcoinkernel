@@ -46,10 +46,20 @@ private struct TransactionDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                detailRow(title: "Txid", value: transaction.txid)
-                detailRow(title: "Fee", value: "\(transaction.fee) sat/vB")
-                detailRow(title: "Virtual size", value: "\(transaction.vsize) vB")
-                detailRow(title: "Value", value: "\(transaction.value) sats")
+                sectionCard(title: "Transaction", subtitle: "Live mempool entry") {
+                    Text(transaction.txid)
+                        .font(.body.monospaced())
+                        .foregroundStyle(.primary)
+                        .textSelection(.enabled)
+                }
+
+                sectionCard(title: "Metrics", subtitle: "What matters at a glance") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        detailRow(title: "Fee rate", value: "\(transaction.fee) sat/vB")
+                        detailRow(title: "Virtual size", value: "\(transaction.vsize) vB")
+                        detailRow(title: "Value", value: "\(transaction.value) sats")
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding()
@@ -59,15 +69,45 @@ private struct TransactionDetailView: View {
         .navigationTitle("Transaction")
     }
 
+    private func sectionCard<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            content()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+        )
+    }
+
     private func detailRow(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.caption)
+                .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.body.monospaced())
+                .font(.caption.monospaced())
                 .foregroundStyle(.primary)
                 .textSelection(.enabled)
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
