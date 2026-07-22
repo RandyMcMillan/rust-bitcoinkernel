@@ -18,3 +18,5 @@ uniffi = { version = "0.28.0", features = [ "cli" ] }
 
 [build-dependencies]
 uniffi = { version = "0.28.0", features = [ "build" ] }
+
+[workspace]
