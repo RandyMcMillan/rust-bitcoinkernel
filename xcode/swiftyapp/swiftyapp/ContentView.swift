@@ -55,7 +55,7 @@ private struct TransactionDetailView: View {
             .padding()
         }
         .scrollIndicators(.hidden)
-        .background(Color(red: 0.06, green: 0.06, blue: 0.08))
+        .background(Color(.systemGroupedBackground))
         .navigationTitle("Transaction")
     }
 
@@ -66,7 +66,7 @@ private struct TransactionDetailView: View {
                 .foregroundStyle(.secondary)
             Text(value)
                 .font(.body.monospaced())
-                .foregroundStyle(.white)
+                .foregroundStyle(.primary)
                 .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,14 +106,14 @@ struct ContentView: View {
         let sum = rustAdd(a: 10, b: 32)
         return NavigationStack {
             ZStack {
-                Color(red: 0.06, green: 0.06, blue: 0.08)
+                Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("mempool.space")
                             .font(.title.bold())
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                         Text("Live Bitcoin mempool data")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -132,18 +132,18 @@ struct ContentView: View {
                             .foregroundStyle(.secondary)
                         Text(selectedNetwork.displayName)
                             .font(.headline)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(
                         RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color.white.opacity(0.05))
+                            .fill(Color(.secondarySystemGroupedBackground))
                     )
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(helloMessage)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                         Text(String(sum))
                             .foregroundStyle(.secondary)
                     }
@@ -168,24 +168,24 @@ struct ContentView: View {
                                             VStack(alignment: .leading, spacing: 8) {
                                                 Text(transaction.txid)
                                                     .font(.caption.monospaced())
-                                                    .foregroundStyle(.white)
+                                                    .foregroundStyle(.primary)
                                                     .fixedSize(horizontal: false, vertical: true)
                                                 Text("fee \(transaction.fee) sat/vB  vsize \(transaction.vsize)  value \(transaction.value)")
                                                     .font(.caption)
                                                     .foregroundStyle(.secondary)
                                                 Text("Tap for details")
                                                     .font(.caption2)
-                                                    .foregroundStyle(Color(red: 0.46, green: 0.92, blue: 0.68))
+                                                    .foregroundStyle(Color.accentColor)
                                             }
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .padding()
                                             .background(
                                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                    .fill(Color.white.opacity(0.05))
+                                                    .fill(Color(.secondarySystemGroupedBackground))
                                             )
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                    .stroke(Color(red: 0.46, green: 0.92, blue: 0.68).opacity(0.25), lineWidth: 1)
+                                                    .stroke(Color.accentColor.opacity(0.22), lineWidth: 1)
                                             )
                                         }
                                         .buttonStyle(.plain)
