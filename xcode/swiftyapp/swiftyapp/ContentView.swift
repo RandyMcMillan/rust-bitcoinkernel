@@ -40,6 +40,36 @@ private struct RecentMempoolTransaction: Codable, Identifiable {
     var id: String { txid }
 }
 
+private struct TransactionDetailView: View {
+    let transaction: RecentMempoolTransaction
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                detailRow(title: "Txid", value: transaction.txid)
+                detailRow(title: "Fee", value: "\(transaction.fee) sat/vB")
+                detailRow(title: "Virtual size", value: "\(transaction.vsize) vB")
+                detailRow(title: "Value", value: "\(transaction.value) sats")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .navigationTitle("Transaction")
+    }
+
+    private func detailRow(title: String, value: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.body.monospaced())
+                .textSelection(.enabled)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
 private enum RecentMempoolStorage {
     static func key(for network: MempoolNetwork) -> String {
         "mempool.recent.\(network.rawValue)"
@@ -92,15 +122,27 @@ struct ContentView: View {
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 10) {
                             ForEach(recentTransactions) { transaction in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(transaction.txid)
-                                        .font(.caption.monospaced())
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    Text("fee \(transaction.fee) sat/vB  vsize \(transaction.vsize)  value \(transaction.value)")
-                                        .font(.caption)
+                                NavigationLink {
+                                    TransactionDetailView(transaction: transaction)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        Text(transaction.txid)
+                                            .font(.caption.monospaced())
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        Text("fee \(transaction.fee) sat/vB  vsize \(transaction.vsize)  value \(transaction.value)")
+                                            .font(.caption)
+                                        Text("Tap for details")
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(Color.secondary.opacity(0.12))
+                                    )
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .padding(.vertical, 4)
+                                .buttonStyle(.plain)
                             }
                         }
                     }
