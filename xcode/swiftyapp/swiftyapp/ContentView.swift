@@ -67,8 +67,20 @@ struct ContentView: View {
                 } else if recentTransactions.isEmpty {
                     Text("No recent transactions loaded.")
                 } else {
-                    ForEach(recentTransactions.prefix(5)) { transaction in
-                        Text("\(String(transaction.txid.prefix(12)))… fee \(transaction.fee) sat/vB vsize \(transaction.vsize) value \(transaction.value)")
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 10) {
+                            ForEach(recentTransactions) { transaction in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(transaction.txid)
+                                        .font(.caption.monospaced())
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Text("fee \(transaction.fee) sat/vB  vsize \(transaction.vsize)  value \(transaction.value)")
+                                        .font(.caption)
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, 4)
+                            }
+                        }
                     }
                 }
             }
