@@ -101,55 +101,58 @@ struct ContentView: View {
     var body: some View {
         let helloMessage = rustHello()
         let sum = rustAdd(a: 10, b: 32)
-        return VStack(alignment: .leading, spacing: 12) {
-            Picker("Network", selection: $selectedNetwork) {
-                ForEach(MempoolNetwork.allCases) { network in
-                    Text(network.displayName).tag(network)
+        return NavigationStack {
+            VStack(alignment: .leading, spacing: 12) {
+                Picker("Network", selection: $selectedNetwork) {
+                    ForEach(MempoolNetwork.allCases) { network in
+                        Text(network.displayName).tag(network)
+                    }
                 }
-            }
-            .pickerStyle(.segmented)
-            Text("Selected: \(selectedNetwork.displayName)")
-            Text(helloMessage)
-            Text(String(sum))
-            Group {
-                if loadingRecentTransactions {
-                    Text("Loading recent mempool transactions...")
-                } else if let recentTransactionsError {
-                    Text(recentTransactionsError)
-                } else if recentTransactions.isEmpty {
-                    Text("No recent transactions loaded.")
-                } else {
-                    ScrollView {
-                        LazyVStack(alignment: .leading, spacing: 10) {
-                            ForEach(recentTransactions) { transaction in
-                                NavigationLink {
-                                    TransactionDetailView(transaction: transaction)
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        Text(transaction.txid)
-                                            .font(.caption.monospaced())
-                                            .fixedSize(horizontal: false, vertical: true)
-                                        Text("fee \(transaction.fee) sat/vB  vsize \(transaction.vsize)  value \(transaction.value)")
-                                            .font(.caption)
-                                        Text("Tap for details")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
+                }
+                .pickerStyle(.segmented)
+                Text("Selected: \(selectedNetwork.displayName)")
+                Text(helloMessage)
+                Text(String(sum))
+                Group {
+                    if loadingRecentTransactions {
+                        Text("Loading recent mempool transactions...")
+                    } else if let recentTransactionsError {
+                        Text(recentTransactionsError)
+                    } else if recentTransactions.isEmpty {
+                        Text("No recent transactions loaded.")
+                    } else {
+                        ScrollView {
+                            LazyVStack(alignment: .leading, spacing: 10) {
+                                ForEach(recentTransactions) { transaction in
+                                    NavigationLink {
+                                        TransactionDetailView(transaction: transaction)
+                                    } label: {
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text(transaction.txid)
+                                                .font(.caption.monospaced())
+                                                .fixedSize(horizontal: false, vertical: true)
+                                            Text("fee \(transaction.fee) sat/vB  vsize \(transaction.vsize)  value \(transaction.value)")
+                                                .font(.caption)
+                                            Text("Tap for details")
+                                                .font(.caption2)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding()
+                                        .background(
+                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                                .fill(Color.secondary.opacity(0.12))
+                                        )
                                     }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .padding()
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                            .fill(Color.secondary.opacity(0.12))
-                                    )
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
                         }
                     }
                 }
             }
+            .padding()
         }
-        .padding()
         .task(id: selectedNetwork) {
             await loadRecentTransactions()
         }
