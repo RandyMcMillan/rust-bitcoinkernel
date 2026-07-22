@@ -25,6 +25,8 @@ SWIFT_CORE_NAME=RustyCore
 
 cd $MY_CRATE
 
+rm -rf out "${MY_CRATE}_framework.xcframework"
+
 # step 1 - compile rust library and generate bindings
 HEADERPATH="out/${MY_CRATE}FFI.h"
 TARGETDIR="$(cargo metadata --no-deps --format-version 1 | tr -d '\n' | sed -n 's/.*"target_directory":"\([^"]*\)".*/\1/p')"

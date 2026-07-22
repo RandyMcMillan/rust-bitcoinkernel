@@ -36,17 +36,7 @@ resolve:
 	xcodebuild -resolvePackageDependencies -project "$(PROJECT)" -scheme "$(SCHEME)"
 
 app: rust resolve
-	xcodebuild \
-		-project "$(PROJECT)" \
-		-scheme "$(SCHEME)" \
-		-configuration "$(CONFIGURATION)" \
-		-derivedDataPath "$(DERIVED_DATA)" \
-		SYMROOT="$(SYMROOT)" \
-		OBJROOT="$(OBJROOT)" \
-		-destination "$(IOS_DESTINATION)" \
-		ARCHS="$(SIMULATOR_ARCH)" \
-		ONLY_ACTIVE_ARCH=YES \
-		build
+	$(MAKE) catalyst
 
 catalyst: rust resolve
 	xcodebuild \
