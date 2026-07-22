@@ -108,7 +108,6 @@ struct ContentView: View {
                         Text(network.displayName).tag(network)
                     }
                 }
-                }
                 .pickerStyle(.segmented)
                 Text("Selected: \(selectedNetwork.displayName)")
                 Text(helloMessage)
