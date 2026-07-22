@@ -35,7 +35,7 @@ TARGETDIR="${TARGETDIR:-target}"
 RELDIR="release"
 STATIC_LIB_NAME="lib${MY_CRATE}.a"
 NEW_HEADER_DIR="$PWD/out/include"
-XCFRAMEWORK_PATH="$PWD/${MY_CRATE}_framework.$$".xcframework
+XCFRAMEWORK_PATH="$PWD/${MY_CRATE}_framework.$$.xcframework"
 
 case "$(uname -m)" in
     arm64)
