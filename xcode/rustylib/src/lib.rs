@@ -1,5 +1,5 @@
 use bitcoinkernel::prelude::*;
-use bitcoinkernel::{Block, Transaction};
+use bitcoinkernel::{Block, ChainParams, ChainType, Transaction};
 
 uniffi::setup_scaffolding!();
 
@@ -17,6 +17,13 @@ pub struct BlockSummary {
     pub transaction_count: u64,
     pub serialized_len: u64,
     pub coinbase_txid: String,
+}
+
+#[derive(uniffi::Record)]
+pub struct NetworkSummary {
+    pub name: String,
+    pub chain_type: String,
+    pub description: String,
 }
 
 #[uniffi::export]
@@ -56,6 +63,19 @@ pub fn block_summary_hex(raw_hex: String) -> Option<BlockSummary> {
     })
 }
 
+#[uniffi::export]
+pub fn network_summary(network: String) -> Option<NetworkSummary> {
+    let chain_type = parse_chain_type(&network)?;
+    let _chain_params = ChainParams::new(chain_type);
+    let name = display_name(chain_type).to_string();
+
+    Some(NetworkSummary {
+        name: name.clone(),
+        chain_type: format!("{chain_type:?}"),
+        description: format!("{name} is ready for Rust-backed chainstate setup."),
+    })
+}
+
 fn decode_transaction(raw_hex: &str) -> Option<Transaction> {
     let bytes = decode_hex(raw_hex)?;
     Transaction::new(&bytes).ok()
@@ -69,4 +89,25 @@ fn decode_block(raw_hex: &str) -> Option<Block> {
 fn decode_hex(raw_hex: &str) -> Option<Vec<u8>> {
     let compact: String = raw_hex.chars().filter(|c| !c.is_whitespace()).collect();
     hex::decode(compact).ok()
+}
+
+fn parse_chain_type(network: &str) -> Option<ChainType> {
+    match network.trim().to_ascii_lowercase().as_str() {
+        "mainnet" => Some(ChainType::Mainnet),
+        "testnet" => Some(ChainType::Testnet),
+        "testnet4" => Some(ChainType::Testnet4),
+        "signet" => Some(ChainType::Signet),
+        "regtest" => Some(ChainType::Regtest),
+        _ => None,
+    }
+}
+
+fn display_name(chain_type: ChainType) -> &'static str {
+    match chain_type {
+        ChainType::Mainnet => "Mainnet",
+        ChainType::Testnet => "Testnet",
+        ChainType::Testnet4 => "Testnet4",
+        ChainType::Signet => "Signet",
+        ChainType::Regtest => "Regtest",
+    }
 }
