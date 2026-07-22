@@ -10,7 +10,7 @@ Demonstrates the ability to generate the necessary bindings for a rust lib compi
 
 ## Setup
 
-`rustylib` rust library with two exposed functions  
+`rustylib` rust library with basic hello/add helpers plus block and transaction summary FFI  
 `swiftyapp` hello world ios app that imports and uses the two rust lib functions
 `swiftyrustlib` Swift package of rust lib
 

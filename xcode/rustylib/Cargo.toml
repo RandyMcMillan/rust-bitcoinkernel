@@ -12,6 +12,8 @@ name = "uniffi-bindgen"
 path = "uniffi-bindgen.rs"
 
 [dependencies]
+bitcoinkernel = { path = "../.." }
+hex = "0.4"
 uniffi = { version = "0.28.0", features = [ "cli" ] }
 
 [build-dependencies]
