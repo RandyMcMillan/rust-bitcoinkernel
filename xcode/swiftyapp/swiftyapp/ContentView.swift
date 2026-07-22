@@ -173,6 +173,7 @@ struct ContentView: View {
     @State private var recentTransactions: [RecentMempoolTransaction] = []
     @State private var loadingRecentTransactions = false
     @State private var recentTransactionsError: String?
+    @State private var recentTransactionsSourceLabel: String?
 
     var body: some View {
         let helloMessage = rustHello()
@@ -209,6 +210,11 @@ struct ContentView: View {
                         Text("Live data with rotating fallback sources")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
+                        if let recentTransactionsSourceLabel {
+                            Text(recentTransactionsSourceLabel)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -328,6 +334,7 @@ struct ContentView: View {
 
         loadingRecentTransactions = true
         recentTransactionsError = nil
+        recentTransactionsSourceLabel = nil
         recentTransactions = RecentMempoolStorage.load(for: selectedNetwork)
 
         let startIndex = RecentMempoolSourceStorage.loadIndex(for: selectedNetwork, sourceCount: urls.count)
@@ -343,7 +350,7 @@ struct ContentView: View {
                 recentTransactions = transactions
                 RecentMempoolStorage.save(transactions, for: selectedNetwork)
                 RecentMempoolSourceStorage.saveIndex((index + 1) % urls.count, for: selectedNetwork)
-                recentTransactionsError = "Loaded from \(url.host ?? "mempool source")."
+                recentTransactionsSourceLabel = "Loaded from \(url.host ?? "mempool source")."
                 lastError = nil
                 break
             } catch {
@@ -353,8 +360,12 @@ struct ContentView: View {
 
         if let lastError, recentTransactions.isEmpty {
             recentTransactionsError = "Failed to load recent transactions: \(lastError.localizedDescription)"
+            recentTransactionsSourceLabel = nil
         } else if let lastError {
             recentTransactionsError = "Showing cached data: \(lastError.localizedDescription)"
+            recentTransactionsSourceLabel = "Cached data while fallback sources retry."
+        } else if recentTransactions.isEmpty == false {
+            recentTransactionsError = nil
         }
 
         loadingRecentTransactions = false
