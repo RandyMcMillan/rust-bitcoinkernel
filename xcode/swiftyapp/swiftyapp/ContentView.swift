@@ -8,6 +8,8 @@
 import SwiftUI
 import RustyLib
 
+private let networkOptions = ["mainnet", "testnet", "testnet4", "signet", "regtest"]
+
 private let sampleTransactionHex = """
 01000000010001000000000000000000000000000000000000000000000000000000000000000000006d483045022100f16703104aab4e4088317c862daec83440242411b039d14280e03dd33b487ab802201318a7be236672c5c56083eb7a5a195bc57a40af7923ff8545016cd3b571e2a601232103c40e5d339df3f30bf753e7e04450ae4ef76c9e45587d1d993bdc4cd06f0651c7acffffffff0000000000
 """
@@ -17,20 +19,30 @@ private let sampleBlockHex = """
 """
 
 struct ContentView: View {
+    @State private var selectedNetwork = "mainnet"
+
     var body: some View {
         print("ContentView: body property accessed.")
         let helloMessage = rustHello()
         let sum = rustAdd(a: 10, b: 32)
+        let networkSummary = networkSummary(network: selectedNetwork)
         let transactionSummary = transactionSummaryHex(rawHex: sampleTransactionHex)
         let blockSummary = blockSummaryHex(rawHex: sampleBlockHex)
         print("ContentView: rustHello() returned \(helloMessage)")
         print("ContentView: rustAdd(a: 10, b: 32) returned \(sum)")
         return VStack {
+            Picker("Network", selection: $selectedNetwork) {
+                ForEach(networkOptions, id: \.self) { network in
+                    Text(network.capitalized).tag(network)
+                }
+            }
+            .pickerStyle(.segmented)
             Image(systemName: "globe")
                 .imageScale(.large)
                 .foregroundStyle(.tint)
             Text(helloMessage)
             Text(String(sum))
+            Text(networkSummary.map { "\($0.name): \($0.description)" } ?? "network summary unavailable")
             Text(transactionSummary.map { "tx \($0.txid) (\($0.inputCount) in, \($0.outputCount) out)" } ?? "tx summary unavailable")
             Text(blockSummary.map { "block \($0.blockHash) (\($0.transactionCount) txs)" } ?? "block summary unavailable")
         }
