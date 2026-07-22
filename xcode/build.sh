@@ -34,15 +34,11 @@ STATIC_LIB_NAME="lib${MY_CRATE}.a"
 NEW_HEADER_DIR="out/include"
 XCFRAMEWORK_PATH="${MY_CRATE}_framework.xcframework"
 
-DEVICE_TARGET="aarch64-apple-ios"
-
 case "$(uname -m)" in
     arm64)
-        SIMULATOR_TARGET="aarch64-apple-ios-sim"
         CATALYST_TARGET="aarch64-apple-ios-macabi"
         ;;
     x86_64)
-        SIMULATOR_TARGET="x86_64-apple-ios"
         CATALYST_TARGET="x86_64-apple-ios-macabi"
         ;;
     *)
@@ -51,7 +47,7 @@ case "$(uname -m)" in
         ;;
 esac
 
-targets=("${DEVICE_TARGET}" "${SIMULATOR_TARGET}" "${CATALYST_TARGET}")
+targets=("${CATALYST_TARGET}")
 
 for target in "${targets[@]}"; do
     rustup target add ${target}
@@ -66,8 +62,6 @@ cp "out/${MY_CRATE}FFI.modulemap" "${NEW_HEADER_DIR}/module.modulemap"
 rm -rf "${XCFRAMEWORK_PATH}"
 
 xcodebuild -create-xcframework \
-    -library "${TARGETDIR}/${DEVICE_TARGET}/${RELDIR}/${STATIC_LIB_NAME}" -headers "${NEW_HEADER_DIR}" \
-    -library "${TARGETDIR}/${SIMULATOR_TARGET}/${RELDIR}/${STATIC_LIB_NAME}" -headers "${NEW_HEADER_DIR}" \
     -library "${TARGETDIR}/${CATALYST_TARGET}/${RELDIR}/${STATIC_LIB_NAME}" -headers "${NEW_HEADER_DIR}" \
     -output "${XCFRAMEWORK_PATH}"
 

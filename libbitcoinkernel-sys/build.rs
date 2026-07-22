@@ -3,8 +3,10 @@ use std::path::Path;
 use std::process::Command;
 
 fn main() {
+    let target = env::var("TARGET").unwrap();
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let is_android = target_os == "android";
+    let apple_sdk = apple_sdk_for_target(&target, &target_os);
 
     let ndk = if is_android {
         Some(
@@ -88,6 +90,30 @@ fn main() {
             // to ONLY, which prevents cmake from finding host packages via
             // CMAKE_PREFIX_PATH. Override it so Boost headers can be located.
             .arg("-DCMAKE_FIND_ROOT_PATH_MODE_PACKAGE=BOTH");
+    } else if target.contains("macabi") {
+        let arch = if target.contains("aarch64") {
+            "arm64"
+        } else {
+            "x86_64"
+        };
+        let catalyst_target = format!("{arch}-apple-ios14.0-macabi");
+        let catalyst_sysroot = xcrun_sdk_path("macosx");
+
+        cmake_configure
+            .arg("-DCMAKE_SYSTEM_NAME=Darwin")
+            .arg(format!("-DCMAKE_OSX_SYSROOT={catalyst_sysroot}"))
+            .arg(format!("-DCMAKE_OSX_ARCHITECTURES={arch}"))
+            .arg(format!(
+                "-DCMAKE_C_FLAGS=-target {catalyst_target} -isysroot {catalyst_sysroot}"
+            ))
+            .arg(format!(
+                "-DCMAKE_CXX_FLAGS=-target {catalyst_target} -isysroot {catalyst_sysroot}"
+            ));
+    } else if let Some((system_name, sdk_name, arch)) = apple_sdk {
+        cmake_configure
+            .arg(format!("-DCMAKE_SYSTEM_NAME={system_name}"))
+            .arg(format!("-DCMAKE_OSX_SYSROOT={}", xcrun_sdk_path(sdk_name)))
+            .arg(format!("-DCMAKE_OSX_ARCHITECTURES={arch}"));
     }
 
     cmake_configure
@@ -128,6 +154,10 @@ fn main() {
     println!("cargo:rustc-link-lib=static=bitcoinkernel");
 
     let compiler = cc::Build::new().get_compiler();
+    let is_apple_target = matches!(
+        target_os.as_str(),
+        "macos" | "ios" | "tvos" | "watchos" | "visionos"
+    );
 
     if target_os == "windows" {
         println!("cargo:rustc-link-lib=bcrypt");
@@ -175,13 +205,57 @@ fn main() {
         if ndk_triple == "arm-linux-androideabi" {
             println!("cargo:rustc-link-arg=-Wl,--exclude-libs,ALL");
         }
+    } else if is_apple_target {
+        println!("cargo:rustc-link-lib=dylib=c++");
     } else if compiler.is_like_clang() {
-        if target_os == "macos" {
-            println!("cargo:rustc-link-lib=dylib=c++");
-        } else {
-            println!("cargo:rustc-link-lib=dylib=stdc++");
-        }
+        println!("cargo:rustc-link-lib=dylib=stdc++");
     } else if compiler.is_like_gnu() {
         println!("cargo:rustc-link-lib=dylib=stdc++");
     }
+}
+
+fn apple_sdk_for_target(
+    target: &str,
+    target_os: &str,
+) -> Option<(&'static str, &'static str, &'static str)> {
+    if target_os != "ios" {
+        return None;
+    }
+
+    let arch = if target.contains("aarch64") {
+        "arm64"
+    } else if target.contains("x86_64") {
+        "x86_64"
+    } else {
+        return None;
+    };
+
+    if target.contains("macabi") {
+        Some(("Darwin", "macosx", arch))
+    } else if target.contains("sim") {
+        Some(("iOS", "iphonesimulator", arch))
+    } else {
+        Some(("iOS", "iphoneos", arch))
+    }
+}
+
+fn xcrun_sdk_path(sdk: &str) -> String {
+    let output = Command::new("xcrun")
+        .arg("--sdk")
+        .arg(sdk)
+        .arg("--show-sdk-path")
+        .output()
+        .unwrap_or_else(|err| panic!("failed to run xcrun for {sdk}: {err}"));
+
+    if !output.status.success() {
+        panic!(
+            "xcrun --sdk {sdk} --show-sdk-path failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+
+    String::from_utf8(output.stdout)
+        .expect("xcrun returned non-utf8 output")
+        .trim()
+        .to_string()
 }
