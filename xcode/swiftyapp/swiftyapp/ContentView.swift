@@ -15,18 +15,30 @@ private enum MempoolNetwork: String, CaseIterable, Identifiable {
         rawValue.capitalized
     }
 
-    var recentTransactionsURL: URL? {
+    var recentTransactionsURLs: [URL] {
         switch self {
         case .mainnet:
-            URL(string: "https://mempool.space/api/mempool/recent")
+            return [
+                URL(string: "https://mempool.space/api/mempool/recent"),
+                URL(string: "https://bitcoin.gob.sv/api/mempool/recent"),
+                URL(string: "https://blockstream.info/api/mempool/recent"),
+            ].compactMap { $0 }
         case .testnet:
-            URL(string: "https://mempool.space/testnet/api/mempool/recent")
+            return [
+                URL(string: "https://mempool.space/testnet/api/mempool/recent"),
+                URL(string: "https://blockstream.info/testnet/api/mempool/recent"),
+            ].compactMap { $0 }
         case .testnet4:
-            URL(string: "https://mempool.space/testnet4/api/mempool/recent")
+            return [
+                URL(string: "https://mempool.space/testnet4/api/mempool/recent"),
+            ].compactMap { $0 }
         case .signet:
-            URL(string: "https://mempool.space/signet/api/mempool/recent")
+            return [
+                URL(string: "https://mempool.space/signet/api/mempool/recent"),
+                URL(string: "https://blockstream.info/signet/api/mempool/recent"),
+            ].compactMap { $0 }
         case .regtest:
-            nil
+            return []
         }
     }
 }
@@ -135,6 +147,27 @@ private enum RecentMempoolStorage {
     }
 }
 
+private enum RecentMempoolSourceStorage {
+    static func key(for network: MempoolNetwork) -> String {
+        "mempool.source.index.\(network.rawValue)"
+    }
+
+    static func loadIndex(for network: MempoolNetwork, sourceCount: Int) -> Int {
+        guard sourceCount > 0 else { return 0 }
+        return UserDefaults.standard.integer(forKey: key(for: network)).clamped(to: 0..<(sourceCount))
+    }
+
+    static func saveIndex(_ index: Int, for network: MempoolNetwork) {
+        UserDefaults.standard.set(index, forKey: key(for: network))
+    }
+}
+
+private extension Int {
+    func clamped(to range: Range<Int>) -> Int {
+        min(max(self, range.lowerBound), range.upperBound - 1)
+    }
+}
+
 struct ContentView: View {
     @State private var selectedNetwork = MempoolNetwork.mainnet
     @State private var recentTransactions: [RecentMempoolTransaction] = []
@@ -173,6 +206,9 @@ struct ContentView: View {
                         Text(selectedNetwork.displayName)
                             .font(.headline)
                             .foregroundStyle(.primary)
+                        Text("Live data with rotating fallback sources")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
                     }
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -282,7 +318,8 @@ struct ContentView: View {
 
     @MainActor
     private func loadRecentTransactions() async {
-        guard let url = selectedNetwork.recentTransactionsURL else {
+        let urls = selectedNetwork.recentTransactionsURLs
+        guard !urls.isEmpty else {
             loadingRecentTransactions = false
             recentTransactions = []
             recentTransactionsError = "No public bitcoinkernal feed for \(selectedNetwork.displayName)."
@@ -293,17 +330,31 @@ struct ContentView: View {
         recentTransactionsError = nil
         recentTransactions = RecentMempoolStorage.load(for: selectedNetwork)
 
-        do {
-            let (data, _) = try await URLSession.shared.data(from: url)
-            let transactions = try JSONDecoder().decode([RecentMempoolTransaction].self, from: data)
-            recentTransactions = transactions
-            RecentMempoolStorage.save(transactions, for: selectedNetwork)
-        } catch {
-            if recentTransactions.isEmpty {
-                recentTransactionsError = "Failed to load recent transactions: \(error.localizedDescription)"
-            } else {
-                recentTransactionsError = "Showing cached data: \(error.localizedDescription)"
+        let startIndex = RecentMempoolSourceStorage.loadIndex(for: selectedNetwork, sourceCount: urls.count)
+        var lastError: Error?
+
+        for offset in 0..<urls.count {
+            let index = (startIndex + offset) % urls.count
+            let url = urls[index]
+
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let transactions = try JSONDecoder().decode([RecentMempoolTransaction].self, from: data)
+                recentTransactions = transactions
+                RecentMempoolStorage.save(transactions, for: selectedNetwork)
+                RecentMempoolSourceStorage.saveIndex((index + 1) % urls.count, for: selectedNetwork)
+                recentTransactionsError = "Loaded from \(url.host ?? "mempool source")."
+                lastError = nil
+                break
+            } catch {
+                lastError = error
             }
+        }
+
+        if let lastError, recentTransactions.isEmpty {
+            recentTransactionsError = "Failed to load recent transactions: \(lastError.localizedDescription)"
+        } else if let lastError {
+            recentTransactionsError = "Showing cached data: \(lastError.localizedDescription)"
         }
 
         loadingRecentTransactions = false
