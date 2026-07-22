@@ -31,13 +31,35 @@ private enum MempoolNetwork: String, CaseIterable, Identifiable {
     }
 }
 
-private struct RecentMempoolTransaction: Decodable, Identifiable {
+private struct RecentMempoolTransaction: Codable, Identifiable {
     let txid: String
     let fee: Int
     let vsize: Int
     let value: Int
 
     var id: String { txid }
+}
+
+private enum RecentMempoolStorage {
+    static func key(for network: MempoolNetwork) -> String {
+        "mempool.recent.\(network.rawValue)"
+    }
+
+    static func load(for network: MempoolNetwork) -> [RecentMempoolTransaction] {
+        guard let data = UserDefaults.standard.data(forKey: key(for: network)) else {
+            return []
+        }
+
+        return (try? JSONDecoder().decode([RecentMempoolTransaction].self, from: data)) ?? []
+    }
+
+    static func save(_ transactions: [RecentMempoolTransaction], for network: MempoolNetwork) {
+        guard let data = try? JSONEncoder().encode(transactions) else {
+            return
+        }
+
+        UserDefaults.standard.set(data, forKey: key(for: network))
+    }
 }
 
 struct ContentView: View {
@@ -102,13 +124,19 @@ struct ContentView: View {
 
         loadingRecentTransactions = true
         recentTransactionsError = nil
+        recentTransactions = RecentMempoolStorage.load(for: selectedNetwork)
 
         do {
             let (data, _) = try await URLSession.shared.data(from: url)
-            recentTransactions = try JSONDecoder().decode([RecentMempoolTransaction].self, from: data)
+            let transactions = try JSONDecoder().decode([RecentMempoolTransaction].self, from: data)
+            recentTransactions = transactions
+            RecentMempoolStorage.save(transactions, for: selectedNetwork)
         } catch {
-            recentTransactions = []
-            recentTransactionsError = "Failed to load recent transactions: \(error.localizedDescription)"
+            if recentTransactions.isEmpty {
+                recentTransactionsError = "Failed to load recent transactions: \(error.localizedDescription)"
+            } else {
+                recentTransactionsError = "Showing cached data: \(error.localizedDescription)"
+            }
         }
 
         loadingRecentTransactions = false
