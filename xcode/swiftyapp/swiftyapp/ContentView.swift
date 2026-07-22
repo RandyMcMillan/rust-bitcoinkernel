@@ -185,119 +185,128 @@ struct ContentView: View {
                 Color(.systemGroupedBackground)
                     .ignoresSafeArea()
 
-                VStack(alignment: .leading, spacing: 16) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("bitcoinkernal")
-                            .font(.title.bold())
-                            .foregroundStyle(.primary)
-                        Text("Live Bitcoin data")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                    }
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 16, pinnedViews: [.sectionHeaders]) {
+                        Section {
+                            VStack(alignment: .leading, spacing: 16) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(helloMessage)
+                                        .foregroundStyle(.primary)
+                                    Text(String(sum))
+                                        .foregroundStyle(.secondary)
+                                }
 
-                    Picker("Network", selection: $selectedNetwork) {
-                        ForEach(MempoolNetwork.allCases) { network in
-                            Text(network.displayName).tag(network)
-                        }
-                    }
-                    .pickerStyle(.segmented)
+                                Group {
+                                    if loadingRecentTransactions {
+                                        Text("Loading recent mempool transactions...")
+                                            .foregroundStyle(.secondary)
+                                    } else if let recentTransactionsError {
+                                        Text(recentTransactionsError)
+                                            .foregroundStyle(.secondary)
+                                    } else if recentTransactions.isEmpty {
+                                        Text("No recent transactions loaded.")
+                                            .foregroundStyle(.secondary)
+                                    } else {
+                                        LazyVStack(alignment: .leading, spacing: 12) {
+                                            ForEach(recentTransactions) { transaction in
+                                                NavigationLink {
+                                                    TransactionDetailView(transaction: transaction)
+                                                } label: {
+                                                    VStack(alignment: .leading, spacing: 10) {
+                                                        HStack(alignment: .firstTextBaseline) {
+                                                            VStack(alignment: .leading, spacing: 2) {
+                                                                Text("Transaction")
+                                                                    .font(.headline)
+                                                                    .foregroundStyle(.primary)
+                                                                Text(transaction.txid)
+                                                                    .font(.caption.monospaced())
+                                                                    .foregroundStyle(.secondary)
+                                                                    .fixedSize(horizontal: false, vertical: true)
+                                                            }
+                                                            Spacer(minLength: 12)
+                                                            Text("Open")
+                                                                .font(.caption.bold())
+                                                                .foregroundStyle(.white)
+                                                                .padding(.horizontal, 10)
+                                                                .padding(.vertical, 6)
+                                                                .background(
+                                                                    Capsule(style: .continuous)
+                                                                        .fill(Color.accentColor)
+                                                                )
+                                                        }
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Selected network")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        Text(selectedNetwork.displayName)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        Text("Live data with rotating fallback sources")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        if let recentTransactionsSourceLabel {
-                            Text(recentTransactionsSourceLabel)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                                        HStack(spacing: 12) {
+                                                            infoPill(title: "Fee", value: "\(transaction.fee) sat/vB")
+                                                            infoPill(title: "Size", value: "\(transaction.vsize) vB")
+                                                            infoPill(title: "Value", value: "\(transaction.value) sats")
+                                                        }
+                                                    }
+                                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                                    .padding()
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                            .fill(Color(.secondarySystemGroupedBackground))
+                                                    )
+                                                    .overlay(
+                                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                                            .stroke(Color.accentColor.opacity(0.22), lineWidth: 1)
+                                                    )
+                                                }
+                                                .buttonStyle(.plain)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } header: {
+                            VStack(alignment: .leading, spacing: 16) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("bitcoinkernal")
+                                        .font(.title.bold())
+                                        .foregroundStyle(.primary)
+                                    Text("Live Bitcoin data")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Picker("Network", selection: $selectedNetwork) {
+                                    ForEach(MempoolNetwork.allCases) { network in
+                                        Text(network.displayName).tag(network)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Selected network")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    Text(selectedNetwork.displayName)
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    Text("Live data with rotating fallback sources")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                    if let recentTransactionsSourceLabel {
+                                        Text(recentTransactionsSourceLabel)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color(.secondarySystemGroupedBackground))
+                                )
+
+                                Divider()
+                            }
+                            .padding()
+                            .background(Color(.systemGroupedBackground))
                         }
                     }
                     .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(Color(.secondarySystemGroupedBackground))
-                    )
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(helloMessage)
-                            .foregroundStyle(.primary)
-                        Text(String(sum))
-                            .foregroundStyle(.secondary)
-                    }
-
-                    Group {
-                        if loadingRecentTransactions {
-                            Text("Loading recent mempool transactions...")
-                                .foregroundStyle(.secondary)
-                        } else if let recentTransactionsError {
-                            Text(recentTransactionsError)
-                                .foregroundStyle(.secondary)
-                        } else if recentTransactions.isEmpty {
-                            Text("No recent transactions loaded.")
-                                .foregroundStyle(.secondary)
-                        } else {
-                            ScrollView {
-                                LazyVStack(alignment: .leading, spacing: 12) {
-                                    ForEach(recentTransactions) { transaction in
-                                        NavigationLink {
-                                            TransactionDetailView(transaction: transaction)
-                                        } label: {
-                                            VStack(alignment: .leading, spacing: 10) {
-                                                HStack(alignment: .firstTextBaseline) {
-                                                    VStack(alignment: .leading, spacing: 2) {
-                                                        Text("Transaction")
-                                                            .font(.headline)
-                                                            .foregroundStyle(.primary)
-                                                        Text(transaction.txid)
-                                                            .font(.caption.monospaced())
-                                                            .foregroundStyle(.secondary)
-                                                            .fixedSize(horizontal: false, vertical: true)
-                                                    }
-                                                    Spacer(minLength: 12)
-                                                    Text("Open")
-                                                        .font(.caption.bold())
-                                                        .foregroundStyle(.white)
-                                                        .padding(.horizontal, 10)
-                                                        .padding(.vertical, 6)
-                                                        .background(
-                                                            Capsule(style: .continuous)
-                                                                .fill(Color.accentColor)
-                                                        )
-                                                }
-
-                                                HStack(spacing: 12) {
-                                                    infoPill(title: "Fee", value: "\(transaction.fee) sat/vB")
-                                                    infoPill(title: "Size", value: "\(transaction.vsize) vB")
-                                                    infoPill(title: "Value", value: "\(transaction.value) sats")
-                                                }
-                                            }
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .padding()
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                    .fill(Color(.secondarySystemGroupedBackground))
-                                            )
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                                    .stroke(Color.accentColor.opacity(0.22), lineWidth: 1)
-                                            )
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
-                                }
-                                .scrollIndicators(.hidden)
-                            }
-                        }
-                    }
                 }
-                .padding()
                 .navigationTitle("Mempool")
                 .navigationBarTitleDisplayMode(.inline)
             }
