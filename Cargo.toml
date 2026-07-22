@@ -26,3 +26,6 @@ members = [
     "fuzz",
     "libbitcoinkernel-sys"
 ]
+exclude = [
+    "xcode"
+]
