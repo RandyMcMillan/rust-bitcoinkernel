@@ -111,10 +111,10 @@ struct ContentView: View {
 
                 VStack(alignment: .leading, spacing: 16) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("mempool.space")
+                        Text("bitcoinkernal")
                             .font(.title.bold())
                             .foregroundStyle(.primary)
-                        Text("Live Bitcoin mempool data")
+                        Text("Live Bitcoin data")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -211,7 +211,7 @@ struct ContentView: View {
         guard let url = selectedNetwork.recentTransactionsURL else {
             loadingRecentTransactions = false
             recentTransactions = []
-            recentTransactionsError = "No public mempool feed for \(selectedNetwork.displayName)."
+            recentTransactionsError = "No public bitcoinkernal feed for \(selectedNetwork.displayName)."
             return
         }
 
