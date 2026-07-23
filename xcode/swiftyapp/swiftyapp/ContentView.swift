@@ -353,15 +353,15 @@ struct ContentView: View {
                                                                     .fixedSize(horizontal: false, vertical: true)
                                                             }
                                                             Spacer(minLength: 12)
-                                                            Text("Open")
-                                                                .font(.body.bold())
-                                                                .foregroundStyle(.white)
-                                                                .padding(.horizontal, 10)
-                                                                .padding(.vertical, 6)
-                                                                .background(
-                                                                    Capsule(style: .continuous)
-                                                                        .fill(Color.accentColor)
-                                                                )
+                                                            //Text("Open")
+                                                            //    .font(.body.bold())
+                                                            //    .foregroundStyle(.white)
+                                                            //    .padding(.horizontal, 10)
+                                                            //    .padding(.vertical, 6)
+                                                            //    .background(
+                                                            //        Capsule(style: .continuous)
+                                                            //            .fill(Color.accentColor)
+                                                            //    )
                                                         }
 
                                                         HStack(spacing: 12) {
