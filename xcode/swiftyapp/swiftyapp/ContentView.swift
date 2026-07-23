@@ -398,7 +398,10 @@ private struct InputTransactionDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                sectionCard(title: input.isCoinbase ? "Coinbase input" : "Input", subtitle: "Related transaction data") {
+                sectionCard(
+                    title: input.isCoinbase ? "Coinbase input" : "Input",
+                    subtitle: "Referenced transaction data"
+                ) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(input.isCoinbase ? "No previous transaction" : "\(input.txid):\(input.vout)")
                             .font(.headline.monospaced())
@@ -407,20 +410,21 @@ private struct InputTransactionDetailView: View {
                         Text("sequence \(input.sequence)")
                             .font(.body.monospaced())
                             .foregroundStyle(.secondary)
-                                                if loadingDetail {
-                                                    Text("Loading related transaction data...")
-                                                        .font(.body)
-                                                        .foregroundStyle(.primary)
-                                                } else if let detailError {
-                                                    Text(detailError)
-                                                        .font(.body)
-                                                        .foregroundStyle(.primary)
-                                                }
+
+                        if loadingDetail {
+                            Text("Loading related transaction data...")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        } else if let detailError {
+                            Text(detailError)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        }
                     }
                 }
 
                 if let detail {
-                    sectionCard(title: "Inputs", subtitle: "Referenced inputs") {
+                    sectionCard(title: "Related inputs", subtitle: "Inputs from the referenced transaction") {
                         VStack(alignment: .leading, spacing: 10) {
                             ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, relatedInput in
                                 VStack(alignment: .leading, spacing: 4) {
@@ -430,28 +434,6 @@ private struct InputTransactionDetailView: View {
                                     Text("sequence \(relatedInput.sequence)")
                                         .font(.body)
                                         .foregroundStyle(.secondary)
-                                }
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(Color(.systemBackground))
-                                )
-                            }
-                        }
-                    }
-
-                    sectionCard(title: "Outputs", subtitle: "Output scripts and values") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            ForEach(Array(detail.outputs.enumerated()), id: \.offset) { _, output in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("#\(output.index) \(output.value) sats")
-                                        .font(.body.monospaced())
-                                        .foregroundStyle(.primary)
-                                    Text(output.scriptPubkeyHex)
-                                        .font(.body.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .textSelection(.enabled)
                                 }
                                 .padding()
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -571,8 +553,12 @@ private struct OutputTransactionDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 sectionCard(title: "Output", subtitle: "Transaction result") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("#\(output.index)")
+                        Text("Transaction \(txid)")
                             .font(.headline.monospaced())
+                            .foregroundStyle(.primary)
+                            .textSelection(.enabled)
+                        Text("#\(output.index)")
+                            .font(.body.monospaced())
                             .foregroundStyle(.primary)
                         Text("\(output.value) sats")
                             .font(.body)
