@@ -68,6 +68,24 @@ private enum MempoolNetwork: String, CaseIterable, Identifiable {
             return []
         }
     }
+
+    func transactionPageURL(txid: String) -> URL? {
+        switch self {
+        case .mainnet:
+            return URL(string: "https://mempool.space/tx/\(txid)")
+                ?? URL(string: "https://blockstream.info/tx/\(txid)")
+        case .testnet:
+            return URL(string: "https://mempool.space/testnet/tx/\(txid)")
+                ?? URL(string: "https://blockstream.info/testnet/tx/\(txid)")
+        case .testnet4:
+            return URL(string: "https://mempool.space/testnet4/tx/\(txid)")
+        case .signet:
+            return URL(string: "https://mempool.space/signet/tx/\(txid)")
+                ?? URL(string: "https://blockstream.info/signet/tx/\(txid)")
+        case .regtest:
+            return nil
+        }
+    }
 }
 
 private struct RecentMempoolTransaction: Codable, Identifiable {
@@ -124,26 +142,33 @@ private struct TransactionDetailView: View {
                     sectionCard(title: "Inputs", subtitle: "Outpoints this transaction spends") {
                         VStack(alignment: .leading, spacing: 10) {
                             ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, input in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text(input.isCoinbase ? "Coinbase input" : "Input")
-                                            .font(.body.bold())
-                                            .foregroundStyle(.primary)
-                                        Spacer(minLength: 0)
-                                        Text("sequence \(input.sequence)")
+                                if input.isCoinbase {
+                                    inputCard(title: "Coinbase input", sequence: input.sequence) {
+                                        Text("No previous output")
                                             .font(.body.monospaced())
-                                            .foregroundStyle(.secondary)
+                                            .foregroundStyle(.primary)
                                     }
-                                    Text(input.isCoinbase ? "No previous output" : "\(input.txid):\(input.vout)")
-                                        .font(.body.monospaced())
-                                        .foregroundStyle(.primary)
+                                } else if let pageURL = network.transactionPageURL(txid: input.txid) {
+                                    Link(destination: pageURL) {
+                                        inputCard(title: "Input", sequence: input.sequence) {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                Text("\(input.txid):\(input.vout)")
+                                                    .font(.body.monospaced())
+                                                    .foregroundStyle(.primary)
+                                                Text("Tap to open previous transaction")
+                                                    .font(.body)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        }
+                                    }
+                                    .buttonStyle(.plain)
+                                } else {
+                                    inputCard(title: "Input", sequence: input.sequence) {
+                                        Text("\(input.txid):\(input.vout)")
+                                            .font(.body.monospaced())
+                                            .foregroundStyle(.primary)
+                                    }
                                 }
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(Color(.systemBackground))
-                                )
                             }
                         }
                     }
@@ -217,6 +242,31 @@ private struct TransactionDetailView: View {
             Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func inputCard<Content: View>(
+        title: String,
+        sequence: UInt64,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(title)
+                    .font(.body.bold())
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+                Text("sequence \(sequence)")
+                    .font(.body.monospaced())
+                    .foregroundStyle(.secondary)
+            }
+            content()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(.systemBackground))
+        )
     }
 
     @MainActor
