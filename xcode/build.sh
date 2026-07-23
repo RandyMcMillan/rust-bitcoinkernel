@@ -57,6 +57,14 @@ for target in "${targets[@]}"; do
             cargo build --target "${target}" --release -j8
             cargo run --bin uniffi-bindgen generate --library "${TARGETDIR}/${target}/${RELDIR}/${STATIC_LIB_NAME}" --language swift --out-dir out
         done
+
+# When Xcode invokes this script as a build phase, the outer `make catalyst`
+# invocation has already populated the xcframework artifact. Skip the packaging
+# step here to avoid a second create-xcframework pass over the same headers.
+if [ -n "${TARGET_BUILD_DIR:-}" ]; then
+    exit 0
+fi
+
 # step 2 - create xcframework
 mkdir -p "${NEW_HEADER_DIR}"
 cp "${HEADERPATH}" "${NEW_HEADER_DIR}/"
