@@ -92,22 +92,22 @@ private struct TransactionDetailView: View {
                 sectionCard(title: "Transaction", subtitle: "Live mempool entry") {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(transaction.txid)
-                            .font(.body.monospaced())
+                            .font(.headline.monospaced())
                             .foregroundStyle(.primary)
                             .textSelection(.enabled)
                         if loadingDetail {
                             Text("Loading more transaction data from Rust...")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(.body)
+                                .foregroundStyle(.primary)
                         } else if let detailError {
                             Text(detailError)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .font(.body)
+                                .foregroundStyle(.primary)
                         }
                     }
                 }
 
-                sectionCard(title: "Metrics", subtitle: "What matters at a glance") {
+                sectionCard(title: "Metrics", subtitle: "") {
                     VStack(alignment: .leading, spacing: 10) {
                         detailRow(title: "Fee rate", value: "\(transaction.fee) sat/vB")
                         detailRow(title: "Virtual size", value: "\(transaction.vsize) vB")
@@ -126,10 +126,10 @@ private struct TransactionDetailView: View {
                             ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, input in
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("\(input.txid):\(input.vout)")
-                                        .font(.caption.monospaced())
+                                        .font(.body.monospaced())
                                         .foregroundStyle(.primary)
                                     Text("sequence \(input.sequence)")
-                                        .font(.caption2)
+                                        .font(.body)
                                         .foregroundStyle(.secondary)
                                 }
                             }
@@ -141,10 +141,10 @@ private struct TransactionDetailView: View {
                             ForEach(Array(detail.outputs.enumerated()), id: \.offset) { _, output in
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text("#\(output.index) \(output.value) sats")
-                                        .font(.caption.monospaced())
+                                        .font(.body.monospaced())
                                         .foregroundStyle(.primary)
                                     Text(output.scriptPubkeyHex)
-                                        .font(.caption2.monospaced())
+                                        .font(.body.monospaced())
                                         .foregroundStyle(.secondary)
                                         .textSelection(.enabled)
                                 }
@@ -172,10 +172,10 @@ private struct TransactionDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.headline)
+                    .font(.title3.bold())
                     .foregroundStyle(.primary)
                 Text(subtitle)
-                    .font(.caption)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             }
 
@@ -196,10 +196,10 @@ private struct TransactionDetailView: View {
     private func detailRow(title: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(title)
-                .font(.caption.weight(.medium))
+                .font(.body.weight(.medium))
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.caption.monospaced())
+                .font(.body.monospaced())
                 .foregroundStyle(.primary)
                 .textSelection(.enabled)
             Spacer(minLength: 0)
@@ -322,23 +322,19 @@ struct ContentView: View {
                     LazyVStack(alignment: .leading, spacing: 16, pinnedViews: [.sectionHeaders]) {
                         Section {
                             VStack(alignment: .leading, spacing: 16) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(helloMessage)
-                                        .foregroundStyle(.primary)
-                                    Text(String(sum))
-                                        .foregroundStyle(.secondary)
-                                }
-
                                 Group {
                                     if loadingRecentTransactions {
                                         Text("Loading recent mempool transactions...")
-                                            .foregroundStyle(.secondary)
+                                            .font(.body)
+                                            .foregroundStyle(.primary)
                                     } else if let recentTransactionsError {
                                         Text(recentTransactionsError)
-                                            .foregroundStyle(.secondary)
+                                            .font(.body)
+                                            .foregroundStyle(.primary)
                                     } else if recentTransactions.isEmpty {
                                         Text("No recent transactions loaded.")
-                                            .foregroundStyle(.secondary)
+                                            .font(.body)
+                                            .foregroundStyle(.primary)
                                     } else {
                                         LazyVStack(alignment: .leading, spacing: 12) {
                                             ForEach(recentTransactions) { transaction in
@@ -349,16 +345,16 @@ struct ContentView: View {
                                                         HStack(alignment: .firstTextBaseline) {
                                                             VStack(alignment: .leading, spacing: 2) {
                                                                 Text("Transaction")
-                                                                    .font(.headline)
+                                                                    .font(.title3.bold())
                                                                     .foregroundStyle(.primary)
                                                                 Text(transaction.txid)
-                                                                    .font(.caption.monospaced())
-                                                                    .foregroundStyle(.secondary)
+                                                                    .font(.body.monospaced())
+                                                                    .foregroundStyle(.primary)
                                                                     .fixedSize(horizontal: false, vertical: true)
                                                             }
                                                             Spacer(minLength: 12)
                                                             Text("Open")
-                                                                .font(.caption.bold())
+                                                                .font(.body.bold())
                                                                 .foregroundStyle(.white)
                                                                 .padding(.horizontal, 10)
                                                                 .padding(.vertical, 6)
@@ -394,7 +390,7 @@ struct ContentView: View {
                         } header: {
                             VStack(alignment: .leading, spacing: 16) {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("rust-bitcoinkernal:swift ffi")
+                                    Text("rust-bitcoinkernal/xcode: swift ffi")
                                         .font(.title.bold())
                                         .foregroundStyle(.primary)
                                     Text("Live Bitcoin data")
@@ -452,10 +448,10 @@ struct ContentView: View {
     private func infoPill(title: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.caption2)
+                .font(.body)
                 .foregroundStyle(.secondary)
             Text(value)
-                .font(.caption.bold())
+                .font(.headline.bold())
                 .foregroundStyle(.primary)
         }
         .padding(.vertical, 6)
@@ -508,7 +504,7 @@ struct ContentView: View {
                 recentTransactions = transactions
                 RecentMempoolStorage.save(transactions, for: selectedNetwork)
                 RecentMempoolSourceStorage.saveIndex((index + 1) % urls.count, for: selectedNetwork)
-                recentTransactionsSourceLabel = "Loaded from \(url.host ?? "mempool source")."
+                recentTransactionsSourceLabel = nil //"Loaded from \(url.host ?? "mempool source")."
                 lastError = nil
                 break
             } catch {
