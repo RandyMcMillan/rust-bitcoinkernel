@@ -104,6 +104,7 @@ private struct TransactionDetailView: View {
     @State private var detailError: String?
     @State private var loadingDetail = false
     @State private var selectedInputDetail: InputSelection?
+    @State private var selectedOutputDetail: OutputSelection?
 
     var body: some View {
         ScrollView {
@@ -173,15 +174,29 @@ private struct TransactionDetailView: View {
                     sectionCard(title: "Outputs", subtitle: "Resulting value flow") {
                         VStack(alignment: .leading, spacing: 12) {
                             ForEach(Array(detail.outputs.enumerated()), id: \.offset) { _, output in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("#\(output.index) \(output.value) sats")
-                                        .font(.body.monospaced())
-                                        .foregroundStyle(.primary)
-                                    Text(output.scriptPubkeyHex)
-                                        .font(.body.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .textSelection(.enabled)
+                                Button {
+                                    selectedOutputDetail = OutputSelection(output: output)
+                                } label: {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("#\(output.index) \(output.value) sats")
+                                            .font(.body.monospaced())
+                                            .foregroundStyle(.primary)
+                                        Text(output.scriptPubkeyHex)
+                                            .font(.body.monospaced())
+                                            .foregroundStyle(.secondary)
+                                            .textSelection(.enabled)
+                                        Text("Tap for output details")
+                                            .font(.body)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding()
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .fill(Color(.systemBackground))
+                                    )
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -204,6 +219,18 @@ private struct TransactionDetailView: View {
                             Button("Close") {
                                 selectedInputDetail = nil
                             }
+                        }
+                    }
+                    .sheet(item: $selectedOutputDetail) { selection in
+                        NavigationStack {
+                            OutputTransactionDetailView(output: selection.output, txid: transaction.txid)
+                                .toolbar {
+                                    ToolbarItem(placement: .cancellationAction) {
+                                        Button("Close") {
+                                            selectedOutputDetail = nil
+                                        }
+                                    }
+                                }
                         }
                     }
             }
@@ -356,6 +383,11 @@ private struct InputSelection: Identifiable {
     let input: TransactionInputSummary
 }
 
+private struct OutputSelection: Identifiable {
+    let id = UUID()
+    let output: TransactionOutputSummary
+}
+
 private struct InputTransactionDetailView: View {
     let input: TransactionInputSummary
     let network: MempoolNetwork
@@ -375,15 +407,15 @@ private struct InputTransactionDetailView: View {
                         Text("sequence \(input.sequence)")
                             .font(.body.monospaced())
                             .foregroundStyle(.secondary)
-                        if loadingDetail {
-                            Text("Loading related transaction data...")
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                        } else if let detailError {
-                            Text(detailError)
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                        }
+                                                if loadingDetail {
+                                                    Text("Loading related transaction data...")
+                                                        .font(.body)
+                                                        .foregroundStyle(.primary)
+                                                } else if let detailError {
+                                                    Text(detailError)
+                                                        .font(.body)
+                                                        .foregroundStyle(.primary)
+                                                }
                     }
                 }
 
@@ -498,6 +530,66 @@ private struct InputTransactionDetailView: View {
         }
 
         loadingDetail = false
+    }
+
+    private func sectionCard<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.title3.bold())
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+
+            content()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+        )
+    }
+}
+
+private struct OutputTransactionDetailView: View {
+    let output: TransactionOutputSummary
+    let txid: String
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionCard(title: "Output", subtitle: "Transaction result") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("#\(output.index)")
+                            .font(.headline.monospaced())
+                            .foregroundStyle(.primary)
+                        Text("\(output.value) sats")
+                            .font(.body)
+                            .foregroundStyle(.primary)
+                        Text(output.scriptPubkeyHex)
+                            .font(.body.monospaced())
+                            .foregroundStyle(.secondary)
+                            .textSelection(.enabled)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .scrollIndicators(.hidden)
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Output Detail")
     }
 
     private func sectionCard<Content: View>(
