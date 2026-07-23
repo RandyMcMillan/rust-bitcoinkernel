@@ -42,27 +42,27 @@ private enum MempoolNetwork: String, CaseIterable, Identifiable {
         }
     }
 
-    func transactionDetailURLs(txid: String) -> [URL] {
+    func transactionHexURLs(txid: String) -> [URL] {
         switch self {
         case .mainnet:
             return [
-                URL(string: "https://mempool.space/api/tx/\(txid)"),
-                URL(string: "https://bitcoin.gob.sv/api/tx/\(txid)"),
-                URL(string: "https://blockstream.info/api/tx/\(txid)"),
+                URL(string: "https://mempool.space/api/tx/\(txid)/hex"),
+                URL(string: "https://bitcoin.gob.sv/api/tx/\(txid)/hex"),
+                URL(string: "https://blockstream.info/api/tx/\(txid)/hex"),
             ].compactMap { $0 }
         case .testnet:
             return [
-                URL(string: "https://mempool.space/testnet/api/tx/\(txid)"),
-                URL(string: "https://blockstream.info/testnet/api/tx/\(txid)"),
+                URL(string: "https://mempool.space/testnet/api/tx/\(txid)/hex"),
+                URL(string: "https://blockstream.info/testnet/api/tx/\(txid)/hex"),
             ].compactMap { $0 }
         case .testnet4:
             return [
-                URL(string: "https://mempool.space/testnet4/api/tx/\(txid)"),
+                URL(string: "https://mempool.space/testnet4/api/tx/\(txid)/hex"),
             ].compactMap { $0 }
         case .signet:
             return [
-                URL(string: "https://mempool.space/signet/api/tx/\(txid)"),
-                URL(string: "https://blockstream.info/signet/api/tx/\(txid)"),
+                URL(string: "https://mempool.space/signet/api/tx/\(txid)/hex"),
+                URL(string: "https://blockstream.info/signet/api/tx/\(txid)/hex"),
             ].compactMap { $0 }
         case .regtest:
             return []
@@ -79,65 +79,10 @@ private struct RecentMempoolTransaction: Codable, Identifiable {
     var id: String { txid }
 }
 
-private struct TransactionDetail: Decodable {
-    struct Prevout: Decodable {
-        let value: Int
-        let scriptpubkeyAddress: String?
-
-        private enum CodingKeys: String, CodingKey {
-            case value
-            case scriptpubkeyAddress = "scriptpubkey_address"
-        }
-    }
-
-    struct Input: Decodable {
-        let txid: String
-        let vout: Int
-        let prevout: Prevout?
-    }
-
-    struct Output: Decodable, Identifiable {
-        let value: Int
-        let scriptpubkeyAddress: String?
-
-        var id: String { "\(value)-\(scriptpubkeyAddress ?? "unknown")" }
-
-        private enum CodingKeys: String, CodingKey {
-            case value
-            case scriptpubkeyAddress = "scriptpubkey_address"
-        }
-    }
-
-    struct Status: Decodable {
-        let confirmed: Bool
-        let blockHeight: Int?
-        let blockHash: String?
-        let blockTime: Int?
-
-        private enum CodingKeys: String, CodingKey {
-            case confirmed
-            case blockHeight = "block_height"
-            case blockHash = "block_hash"
-            case blockTime = "block_time"
-        }
-    }
-
-    let txid: String
-    let version: Int
-    let locktime: Int
-    let vin: [Input]
-    let vout: [Output]
-    let size: Int
-    let weight: Int
-    let sigops: Int?
-    let fee: Int
-    let status: Status
-}
-
 private struct TransactionDetailView: View {
     let transaction: RecentMempoolTransaction
     let network: MempoolNetwork
-    @State private var detail: TransactionDetail?
+    @State private var detail: TransactionRelations?
     @State private var detailError: String?
     @State private var loadingDetail = false
 
@@ -151,7 +96,7 @@ private struct TransactionDetailView: View {
                             .foregroundStyle(.primary)
                             .textSelection(.enabled)
                         if loadingDetail {
-                            Text("Loading more transaction data...")
+                            Text("Loading more transaction data from Rust...")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else if let detailError {
@@ -168,60 +113,39 @@ private struct TransactionDetailView: View {
                         detailRow(title: "Virtual size", value: "\(transaction.vsize) vB")
                         detailRow(title: "Value", value: "\(transaction.value) sats")
                         if let detail {
-                            detailRow(title: "Version", value: "\(detail.version)")
-                            detailRow(title: "Locktime", value: "\(detail.locktime)")
-                            detailRow(title: "Size", value: "\(detail.size) bytes")
-                            detailRow(title: "Weight", value: "\(detail.weight)")
-                            detailRow(title: "Inputs", value: "\(detail.vin.count)")
-                            detailRow(title: "Outputs", value: "\(detail.vout.count)")
-                            if let sigops = detail.sigops {
-                                detailRow(title: "Sigops", value: "\(sigops)")
-                            }
+                            detailRow(title: "Inputs", value: "\(detail.inputCount)")
+                            detailRow(title: "Outputs", value: "\(detail.outputCount)")
+                            detailRow(title: "Serialized size", value: "\(detail.serializedLen) bytes")
                         }
                     }
                 }
 
                 if let detail {
-                    sectionCard(title: "Status", subtitle: "Confirmation and chain data") {
+                    sectionCard(title: "Inputs", subtitle: "Outpoints this transaction spends") {
                         VStack(alignment: .leading, spacing: 10) {
-                            detailRow(title: "Confirmed", value: detail.status.confirmed ? "Yes" : "No")
-                            if let blockHeight = detail.status.blockHeight {
-                                detailRow(title: "Block height", value: "\(blockHeight)")
-                            }
-                            if let blockHash = detail.status.blockHash {
-                                detailRow(title: "Block hash", value: blockHash)
-                            }
-                            if let blockTime = detail.status.blockTime {
-                                detailRow(title: "Block time", value: "\(blockTime)")
-                            }
-                        }
-                    }
-                }
-
-                if let detail {
-                    sectionCard(title: "Inputs & outputs", subtitle: "Expanded transaction flow") {
-                        VStack(alignment: .leading, spacing: 12) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Inputs")
-                                    .font(.caption.weight(.medium))
-                                    .foregroundStyle(.secondary)
-                                ForEach(detail.vin.indices, id: \.self) { index in
-                                    let input = detail.vin[index]
-                                    Text("\(index + 1). \(input.txid):\(input.vout) \(input.prevout?.scriptpubkeyAddress ?? "unknown")")
+                            ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, input in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("\(input.txid):\(input.vout)")
                                         .font(.caption.monospaced())
                                         .foregroundStyle(.primary)
-                                        .textSelection(.enabled)
+                                    Text("sequence \(input.sequence)")
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
-
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Outputs")
-                                    .font(.caption.weight(.medium))
-                                    .foregroundStyle(.secondary)
-                                ForEach(detail.vout) { output in
-                                    Text("\(output.value) sats \(output.scriptpubkeyAddress ?? "no address")")
+                        }
+                    }
+                    
+                    sectionCard(title: "Outputs", subtitle: "Resulting value flow") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(Array(detail.outputs.enumerated()), id: \.offset) { _, output in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("#\(output.index) \(output.value) sats")
                                         .font(.caption.monospaced())
                                         .foregroundStyle(.primary)
+                                    Text(output.scriptPubkeyHex)
+                                        .font(.caption2.monospaced())
+                                        .foregroundStyle(.secondary)
                                         .textSelection(.enabled)
                                 }
                             }
@@ -285,9 +209,9 @@ private struct TransactionDetailView: View {
 
     @MainActor
     private func pollTransactionDetail() async {
-        let urls = network.transactionDetailURLs(txid: transaction.txid)
+        let urls = network.transactionHexURLs(txid: transaction.txid)
         guard !urls.isEmpty else {
-            detailError = "No public transaction detail feed for \(network.displayName)."
+            detailError = "No public transaction hex feed for \(network.displayName)."
             return
         }
 
@@ -311,7 +235,8 @@ private struct TransactionDetailView: View {
         for url in urls {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
-                detail = try JSONDecoder().decode(TransactionDetail.self, from: data)
+                let hex = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+                detail = transactionRelationsHex(rawHex: hex)
                 detailError = nil
                 lastError = nil
                 loadingDetail = false
@@ -323,7 +248,7 @@ private struct TransactionDetailView: View {
 
         if let lastError {
             if detail == nil {
-                detailError = "Failed to load transaction details: \(lastError.localizedDescription)"
+                detailError = "Failed to load transaction hex: \(lastError.localizedDescription)"
             } else {
                 detailError = "Showing cached detail while retrying: \(lastError.localizedDescription)"
             }
@@ -469,7 +394,7 @@ struct ContentView: View {
                         } header: {
                             VStack(alignment: .leading, spacing: 16) {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    Text("bitcoinkernal")
+                                    Text("rust-bitcoinkernal:swift ffi")
                                         .font(.title.bold())
                                         .foregroundStyle(.primary)
                                     Text("Live Bitcoin data")

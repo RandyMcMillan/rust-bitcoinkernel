@@ -26,6 +26,30 @@ pub struct NetworkSummary {
     pub description: String,
 }
 
+#[derive(uniffi::Record)]
+pub struct TransactionInputSummary {
+    pub txid: String,
+    pub vout: u64,
+    pub sequence: u64,
+}
+
+#[derive(uniffi::Record)]
+pub struct TransactionOutputSummary {
+    pub index: u64,
+    pub value: i64,
+    pub script_pubkey_hex: String,
+}
+
+#[derive(uniffi::Record)]
+pub struct TransactionRelations {
+    pub txid: String,
+    pub input_count: u64,
+    pub output_count: u64,
+    pub serialized_len: u64,
+    pub inputs: Vec<TransactionInputSummary>,
+    pub outputs: Vec<TransactionOutputSummary>,
+}
+
 #[uniffi::export]
 fn rust_hello() -> String {
     "Hello from Rust!".to_string()
@@ -46,6 +70,43 @@ pub fn transaction_summary_hex(raw_hex: String) -> Option<TransactionSummary> {
         input_count: transaction.input_count() as u64,
         output_count: transaction.output_count() as u64,
         serialized_len,
+    })
+}
+
+#[uniffi::export]
+pub fn transaction_relations_hex(raw_hex: String) -> Option<TransactionRelations> {
+    let transaction = decode_transaction(&raw_hex)?;
+    let serialized_len = transaction.consensus_encode().ok()?.len() as u64;
+
+    let inputs = transaction
+        .inputs()
+        .map(|input| {
+            let outpoint = input.outpoint();
+            TransactionInputSummary {
+                txid: outpoint.txid().to_string(),
+                vout: outpoint.index() as u64,
+                sequence: input.sequence() as u64,
+            }
+        })
+        .collect();
+
+    let outputs = transaction
+        .outputs()
+        .enumerate()
+        .map(|(index, output)| TransactionOutputSummary {
+            index: index as u64,
+            value: output.value(),
+            script_pubkey_hex: hex::encode(output.script_pubkey().to_bytes()),
+        })
+        .collect();
+
+    Some(TransactionRelations {
+        txid: transaction.txid().to_string(),
+        input_count: transaction.input_count() as u64,
+        output_count: transaction.output_count() as u64,
+        serialized_len,
+        inputs,
+        outputs,
     })
 }
 
