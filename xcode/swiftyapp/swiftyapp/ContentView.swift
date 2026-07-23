@@ -822,6 +822,9 @@ struct ContentView: View {
     @State private var loadingRecentTransactions = false
     @State private var recentTransactionsError: String?
     @State private var recentTransactionsSourceLabel: String?
+    @State private var localNode: LocalNodeSummary?
+    @State private var localNodeError: String?
+    @State private var loadingLocalNode = false
 
     var body: some View {
         return NavigationStack {
@@ -939,6 +942,41 @@ struct ContentView: View {
                                         .fill(Color(.secondarySystemGroupedBackground))
                                 )
 
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Local Rust node")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                    if loadingLocalNode {
+                                        Text("Starting local node for \(selectedNetwork.displayName)...")
+                                            .font(.headline)
+                                            .foregroundStyle(.primary)
+                                    } else if let localNode {
+                                        Text(localNode.message)
+                                            .font(.headline)
+                                            .foregroundStyle(.primary)
+                                        Text(localNode.dataDir)
+                                            .font(.caption2.monospaced())
+                                            .foregroundStyle(.secondary)
+                                        Text(localNode.blocksDir)
+                                            .font(.caption2.monospaced())
+                                            .foregroundStyle(.secondary)
+                                    } else if let localNodeError {
+                                        Text(localNodeError)
+                                            .font(.headline)
+                                            .foregroundStyle(.primary)
+                                    } else {
+                                        Text("Waiting for local node status.")
+                                            .font(.headline)
+                                            .foregroundStyle(.primary)
+                                    }
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .fill(Color(.secondarySystemGroupedBackground))
+                                )
+
                                 Divider()
                             }
                             .padding()
@@ -950,6 +988,9 @@ struct ContentView: View {
                 .navigationTitle("Mempool")
                 .navigationBarTitleDisplayMode(.inline)
             }
+        }
+        .task(id: selectedNetwork) {
+            await refreshLocalNode()
         }
         .task(id: selectedNetwork) {
             await pollRecentTransactions()
@@ -971,6 +1012,20 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(Color(.systemBackground))
         )
+    }
+
+    @MainActor
+    private func refreshLocalNode() async {
+        loadingLocalNode = true
+        localNodeError = nil
+        defer {
+            loadingLocalNode = false
+        }
+
+        localNode = localNodeSummary(network: selectedNetwork.rawValue)
+        if localNode == nil {
+            localNodeError = "Failed to initialize a local Rust node for \(selectedNetwork.displayName)."
+        }
     }
 
     @MainActor

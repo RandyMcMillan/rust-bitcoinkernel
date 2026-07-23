@@ -1,7 +1,14 @@
 use bitcoinkernel::prelude::*;
 use bitcoinkernel::{
-    verify, Block, ChainParams, ChainType, PrecomputedTransactionData, Transaction, TxCheckResult,
-    VERIFY_ALL,
+    verify, Block, ChainParams, ChainType, ChainstateManager, ContextBuilder,
+    PrecomputedTransactionData, Transaction, TxCheckResult, VERIFY_ALL,
+};
+use std::{
+    collections::HashMap,
+    env,
+    fs,
+    path::PathBuf,
+    sync::{Arc, Mutex, OnceLock},
 };
 
 uniffi::setup_scaffolding!();
@@ -76,6 +83,23 @@ pub struct TransactionInputValidationSummary {
     pub validation_result: String,
     pub message: String,
 }
+
+#[derive(uniffi::Record)]
+pub struct LocalNodeSummary {
+    pub network: String,
+    pub chain_type: String,
+    pub data_dir: String,
+    pub blocks_dir: String,
+    pub is_ready: bool,
+    pub message: String,
+}
+
+struct LocalNodeRuntime {
+    _context: bitcoinkernel::Context,
+    _chainman: ChainstateManager,
+}
+
+static LOCAL_NODE_CACHE: OnceLock<Mutex<HashMap<String, Arc<LocalNodeRuntime>>>> = OnceLock::new();
 
 #[uniffi::export]
 fn rust_hello() -> String {
@@ -233,6 +257,22 @@ pub fn transaction_input_validation_hex(
 }
 
 #[uniffi::export]
+pub fn local_node_summary(network: String) -> Option<LocalNodeSummary> {
+    let chain_type = parse_chain_type(&network)?;
+    let runtime = ensure_local_node_runtime(chain_type)?;
+    let (data_dir, blocks_dir) = local_node_paths(chain_type);
+
+    Some(LocalNodeSummary {
+        network: network.trim().to_ascii_lowercase(),
+        chain_type: format!("{chain_type:?}"),
+        data_dir: data_dir.display().to_string(),
+        blocks_dir: blocks_dir.display().to_string(),
+        is_ready: Arc::strong_count(&runtime) > 0,
+        message: format!("Local Rust node ready for {chain_type:?}."),
+    })
+}
+
+#[uniffi::export]
 pub fn block_summary_hex(raw_hex: String) -> Option<BlockSummary> {
     let block = decode_block(&raw_hex)?;
     let serialized_len = block.consensus_encode().ok()?.len() as u64;
@@ -293,4 +333,53 @@ fn display_name(chain_type: ChainType) -> &'static str {
         ChainType::Signet => "Signet",
         ChainType::Regtest => "Regtest",
     }
+}
+
+fn ensure_local_node_runtime(chain_type: ChainType) -> Option<Arc<LocalNodeRuntime>> {
+    let key = format!("{chain_type:?}");
+    let cache = LOCAL_NODE_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+
+    if let Some(runtime) = cache.lock().ok()?.get(&key).cloned() {
+        return Some(runtime);
+    }
+
+    let (data_dir, blocks_dir) = local_node_paths(chain_type);
+    fs::create_dir_all(&data_dir).ok()?;
+    fs::create_dir_all(&blocks_dir).ok()?;
+
+    let context = ContextBuilder::new().chain_type(chain_type).build().ok()?;
+    let chainman = ChainstateManager::builder(
+        &context,
+        data_dir.to_str()?,
+        blocks_dir.to_str()?,
+    )
+    .ok()?
+    .block_tree_db_in_memory(true)
+    .chainstate_db_in_memory(matches!(chain_type, ChainType::Regtest))
+    .build()
+    .ok()?;
+
+    let runtime = Arc::new(LocalNodeRuntime {
+        _context: context,
+        _chainman: chainman,
+    });
+
+    cache.lock().ok()?.insert(key, Arc::clone(&runtime));
+    Some(runtime)
+}
+
+fn local_node_paths(chain_type: ChainType) -> (PathBuf, PathBuf) {
+    let mut root = env::temp_dir();
+    root.push("rust-bitcoinkernel-xcode");
+    root.push(match chain_type {
+        ChainType::Mainnet => "mainnet",
+        ChainType::Testnet => "testnet",
+        ChainType::Testnet4 => "testnet4",
+        ChainType::Signet => "signet",
+        ChainType::Regtest => "regtest",
+    });
+
+    let data_dir = root.join("data");
+    let blocks_dir = root.join("blocks");
+    (data_dir, blocks_dir)
 }
