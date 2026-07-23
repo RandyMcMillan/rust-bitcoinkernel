@@ -201,9 +201,9 @@ private struct TransactionDetailView: View {
                 if let detail {
                     sectionCard(title: "Inputs", subtitle: "Outpoints this transaction spends") {
                         VStack(alignment: .leading, spacing: 10) {
-                            ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, input in
+                            ForEach(Array(detail.inputs.enumerated()), id: \.offset) { index, input in
                                 Button {
-                                    selectedInputDetail = InputSelection(input: input)
+                                    selectedInputDetail = InputSelection(index: index, input: input)
                                 } label: {
                                     if input.isCoinbase {
                                         inputCard(title: "Coinbase input", sequence: input.sequence) {
@@ -271,7 +271,12 @@ private struct TransactionDetailView: View {
         }
         .sheet(item: $selectedInputDetail) { selection in
             NavigationStack {
-                InputTransactionDetailView(input: selection.input, network: network)
+                InputTransactionDetailView(
+                    input: selection.input,
+                    inputIndex: selection.index,
+                    network: network,
+                    spendingRawHex: rawHex
+                )
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
                             Button("Close") {
@@ -483,6 +488,7 @@ private enum RecentMempoolStorage {
 
 private struct InputSelection: Identifiable {
     let id = UUID()
+    let index: Int
     let input: TransactionInputSummary
 }
 
@@ -493,9 +499,15 @@ private struct OutputSelection: Identifiable {
 
 private struct InputTransactionDetailView: View {
     let input: TransactionInputSummary
+    let inputIndex: Int
     let network: MempoolNetwork
+    let spendingRawHex: String?
     @State private var detail: TransactionRelations?
     @State private var detailError: String?
+    @State private var validation: TransactionInputValidationSummary?
+    @State private var validationError: String?
+    @State private var previousRawHex: String?
+    @State private var validatingInput = false
     @State private var loadingDetail = false
 
     var body: some View {
@@ -522,6 +534,39 @@ private struct InputTransactionDetailView: View {
                             Text(detailError)
                                 .font(.body)
                                 .foregroundStyle(.primary)
+                        }
+                    }
+                }
+
+                if !input.isCoinbase {
+                    sectionCard(title: "Manual validation", subtitle: "Rust verification for this spend") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Button {
+                                Task { await validateInputSpend() }
+                            } label: {
+                                Label("Verify spend in Rust", systemImage: "checkmark.shield")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(spendingRawHex == nil || previousRawHex == nil || validatingInput)
+
+                            if validatingInput {
+                                Text("Running spend verification in Rust...")
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
+                            } else if let validationError {
+                                Text(validationError)
+                                    .font(.body)
+                                    .foregroundStyle(.primary)
+                            }
+
+                            if let validation {
+                                detailRow(title: "Result", value: validation.validationResult)
+                                detailRow(title: "Status", value: validation.isValid ? "Valid" : "Invalid")
+                                Text(validation.message)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -596,6 +641,7 @@ private struct InputTransactionDetailView: View {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 let hex = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+                previousRawHex = hex
                 detail = transactionRelationsHex(rawHex: hex)
                 detailError = nil
                 lastError = nil
@@ -615,6 +661,42 @@ private struct InputTransactionDetailView: View {
         }
 
         loadingDetail = false
+    }
+
+    @MainActor
+    private func validateInputSpend() async {
+        guard let spendingRawHex, let previousRawHex else { return }
+        validatingInput = true
+        validationError = nil
+        validation = nil
+
+        defer {
+            validatingInput = false
+        }
+
+        validation = transactionInputValidationHex(
+            spendingRawHex: spendingRawHex,
+            previousRawHex: previousRawHex,
+            inputIndex: UInt64(inputIndex)
+        )
+
+        if validation == nil {
+            validationError = "Rust spend verification could not decode the transaction inputs."
+        }
+    }
+
+    private func detailRow(title: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(title)
+                .font(.body.weight(.medium))
+                .foregroundStyle(.secondary)
+            Text(value)
+                .font(.body.monospaced())
+                .foregroundStyle(.primary)
+                .textSelection(.enabled)
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func sectionCard<Content: View>(
@@ -742,8 +824,6 @@ struct ContentView: View {
     @State private var recentTransactionsSourceLabel: String?
 
     var body: some View {
-        let helloMessage = rustHello()
-        let sum = rustAdd(a: 10, b: 32)
         return NavigationStack {
             ZStack {
                 Color(.systemGroupedBackground)

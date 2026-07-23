@@ -1,5 +1,8 @@
 use bitcoinkernel::prelude::*;
-use bitcoinkernel::{Block, ChainParams, ChainType, Transaction, TxCheckResult};
+use bitcoinkernel::{
+    verify, Block, ChainParams, ChainType, PrecomputedTransactionData, Transaction, TxCheckResult,
+    VERIFY_ALL,
+};
 
 uniffi::setup_scaffolding!();
 
@@ -60,6 +63,18 @@ pub struct TransactionValidationSummary {
     pub input_count: u64,
     pub output_count: u64,
     pub serialized_len: u64,
+}
+
+#[derive(uniffi::Record)]
+pub struct TransactionInputValidationSummary {
+    pub spending_txid: String,
+    pub previous_txid: String,
+    pub input_index: u64,
+    pub previous_vout: u64,
+    pub previous_output_value: i64,
+    pub is_valid: bool,
+    pub validation_result: String,
+    pub message: String,
 }
 
 #[uniffi::export]
@@ -153,6 +168,67 @@ pub fn transaction_validation_hex(raw_hex: String) -> Option<TransactionValidati
         input_count: transaction.input_count() as u64,
         output_count: transaction.output_count() as u64,
         serialized_len,
+    })
+}
+
+#[uniffi::export]
+pub fn transaction_input_validation_hex(
+    spending_raw_hex: String,
+    previous_raw_hex: String,
+    input_index: u64,
+) -> Option<TransactionInputValidationSummary> {
+    let spending_transaction = decode_transaction(&spending_raw_hex)?;
+    let previous_transaction = decode_transaction(&previous_raw_hex)?;
+
+    let spending_txid = spending_transaction.txid().to_string();
+    let previous_txid = previous_transaction.txid().to_string();
+    let input_index = input_index as usize;
+
+    let input = spending_transaction.input(input_index).ok()?;
+    let outpoint = input.outpoint();
+    let previous_vout = outpoint.index() as usize;
+    let previous_output = previous_transaction.output(previous_vout).ok()?;
+
+    let spent_outputs = vec![previous_output];
+    let precomputed_txdata =
+        PrecomputedTransactionData::new(&spending_transaction, &spent_outputs).ok()?;
+
+    let previous_output_value = previous_output.value();
+    let script_pubkey = previous_output.script_pubkey();
+    let verification = verify(
+        &script_pubkey,
+        Some(previous_output_value),
+        &spending_transaction,
+        input_index,
+        Some(VERIFY_ALL),
+        &precomputed_txdata,
+    );
+
+    let (is_valid, validation_result, message) = match verification {
+        Ok(()) => (
+            true,
+            "Valid".to_string(),
+            "Rust spend verification passed.".to_string(),
+        ),
+        Err(error) => {
+            let validation_result = format!("{error}");
+            (
+                false,
+                validation_result.clone(),
+                format!("Rust spend verification failed: {validation_result}"),
+            )
+        }
+    };
+
+    Some(TransactionInputValidationSummary {
+        spending_txid,
+        previous_txid,
+        input_index: input_index as u64,
+        previous_vout: previous_vout as u64,
+        previous_output_value,
+        is_valid,
+        validation_result,
+        message,
     })
 }
 
