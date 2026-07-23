@@ -419,6 +419,7 @@ private struct TransactionDetailView: View {
         guard let rawHex else { return }
         loadingValidation = true
         validationError = nil
+        summaryMessage = nil
 
         defer {
             loadingValidation = false
@@ -435,6 +436,7 @@ private struct TransactionDetailView: View {
         guard let rawHex else { return }
         checkingSummary = true
         validationError = nil
+        summaryMessage = nil
 
         defer {
             checkingSummary = false
