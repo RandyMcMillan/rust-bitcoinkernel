@@ -124,14 +124,26 @@ private struct TransactionDetailView: View {
                     sectionCard(title: "Inputs", subtitle: "Outpoints this transaction spends") {
                         VStack(alignment: .leading, spacing: 10) {
                             ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, input in
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("\(input.txid):\(input.vout)")
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text(input.isCoinbase ? "Coinbase input" : "Input")
+                                            .font(.body.bold())
+                                            .foregroundStyle(.primary)
+                                        Spacer(minLength: 0)
+                                        Text("sequence \(input.sequence)")
+                                            .font(.body.monospaced())
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    Text(input.isCoinbase ? "No previous output" : "\(input.txid):\(input.vout)")
                                         .font(.body.monospaced())
                                         .foregroundStyle(.primary)
-                                    Text("sequence \(input.sequence)")
-                                        .font(.body)
-                                        .foregroundStyle(.secondary)
                                 }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(Color(.systemBackground))
+                                )
                             }
                         }
                     }

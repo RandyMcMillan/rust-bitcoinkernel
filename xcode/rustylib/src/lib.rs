@@ -31,6 +31,7 @@ pub struct TransactionInputSummary {
     pub txid: String,
     pub vout: u64,
     pub sequence: u64,
+    pub is_coinbase: bool,
 }
 
 #[derive(uniffi::Record)]
@@ -86,6 +87,7 @@ pub fn transaction_relations_hex(raw_hex: String) -> Option<TransactionRelations
                 txid: outpoint.txid().to_string(),
                 vout: outpoint.index() as u64,
                 sequence: input.sequence() as u64,
+                is_coinbase: outpoint.is_null(),
             }
         })
         .collect();
