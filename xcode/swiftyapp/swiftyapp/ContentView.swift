@@ -221,16 +221,16 @@ private struct TransactionDetailView: View {
                             }
                         }
                     }
-                    .sheet(item: $selectedOutputDetail) { selection in
-                        NavigationStack {
-                            OutputTransactionDetailView(output: selection.output, txid: transaction.txid)
-                                .toolbar {
-                                    ToolbarItem(placement: .cancellationAction) {
-                                        Button("Close") {
-                                            selectedOutputDetail = nil
-                                        }
-                                    }
-                                }
+            }
+        }
+        .sheet(item: $selectedOutputDetail) { selection in
+            NavigationStack {
+                OutputTransactionDetailView(output: selection.output, txid: transaction.txid)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") {
+                                selectedOutputDetail = nil
+                            }
                         }
                     }
             }
