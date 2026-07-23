@@ -105,6 +105,7 @@ private struct TransactionDetailView: View {
     @State private var rawHex: String?
     @State private var validation: TransactionValidationSummary?
     @State private var validationError: String?
+    @State private var summaryMessage: String?
     @State private var loadingValidation = false
     @State private var checkingSummary = false
     @State private var loadingDetail = false
@@ -177,6 +178,10 @@ private struct TransactionDetailView: View {
                                 .foregroundStyle(.primary)
                         } else if let validationError {
                             Text(validationError)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        } else if let summaryMessage {
+                            Text(summaryMessage)
                                 .font(.body)
                                 .foregroundStyle(.primary)
                         }
@@ -436,6 +441,7 @@ private struct TransactionDetailView: View {
         }
 
         guard let summary = transactionSummaryHex(rawHex: rawHex) else {
+            summaryMessage = nil
             validationError = "Rust summary check failed to decode the transaction."
             return
         }
@@ -443,7 +449,9 @@ private struct TransactionDetailView: View {
         let expectedTxid = transaction.txid
         if summary.txid == expectedTxid {
             validationError = nil
+            summaryMessage = "Rust summary matched the transaction ID."
         } else {
+            summaryMessage = nil
             validationError = "Rust summary txid mismatch: \(summary.txid) != \(expectedTxid)"
         }
     }
