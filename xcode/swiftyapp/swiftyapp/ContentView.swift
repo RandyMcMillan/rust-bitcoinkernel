@@ -103,6 +103,7 @@ private struct TransactionDetailView: View {
     @State private var detail: TransactionRelations?
     @State private var detailError: String?
     @State private var loadingDetail = false
+    @State private var selectedInputDetail: InputSelection?
 
     var body: some View {
         ScrollView {
@@ -142,33 +143,29 @@ private struct TransactionDetailView: View {
                     sectionCard(title: "Inputs", subtitle: "Outpoints this transaction spends") {
                         VStack(alignment: .leading, spacing: 10) {
                             ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, input in
-                                if input.isCoinbase {
-                                    inputCard(title: "Coinbase input", sequence: input.sequence) {
-                                        Text("No previous output")
-                                            .font(.body.monospaced())
-                                            .foregroundStyle(.primary)
-                                    }
-                                } else if let pageURL = network.transactionPageURL(txid: input.txid) {
-                                    Link(destination: pageURL) {
+                                Button {
+                                    selectedInputDetail = InputSelection(input: input)
+                                } label: {
+                                    if input.isCoinbase {
+                                        inputCard(title: "Coinbase input", sequence: input.sequence) {
+                                            Text("No previous output")
+                                                .font(.body.monospaced())
+                                                .foregroundStyle(.primary)
+                                        }
+                                    } else {
                                         inputCard(title: "Input", sequence: input.sequence) {
                                             VStack(alignment: .leading, spacing: 4) {
                                                 Text("\(input.txid):\(input.vout)")
                                                     .font(.body.monospaced())
                                                     .foregroundStyle(.primary)
-                                                Text("Tap to open previous transaction")
+                                                Text("Tap to load related data")
                                                     .font(.body)
                                                     .foregroundStyle(.secondary)
                                             }
                                         }
                                     }
-                                    .buttonStyle(.plain)
-                                } else {
-                                    inputCard(title: "Input", sequence: input.sequence) {
-                                        Text("\(input.txid):\(input.vout)")
-                                            .font(.body.monospaced())
-                                            .foregroundStyle(.primary)
-                                    }
                                 }
+                                .buttonStyle(.plain)
                             }
                         }
                     }
@@ -198,6 +195,18 @@ private struct TransactionDetailView: View {
         .navigationTitle("Transaction")
         .task(id: transaction.txid) {
             await pollTransactionDetail()
+        }
+        .sheet(item: $selectedInputDetail) { selection in
+            NavigationStack {
+                InputTransactionDetailView(input: selection.input, network: network)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Close") {
+                                selectedInputDetail = nil
+                            }
+                        }
+                    }
+            }
         }
     }
 
@@ -339,6 +348,185 @@ private enum RecentMempoolStorage {
         }
 
         UserDefaults.standard.set(data, forKey: key(for: network))
+    }
+}
+
+private struct InputSelection: Identifiable {
+    let id = UUID()
+    let input: TransactionInputSummary
+}
+
+private struct InputTransactionDetailView: View {
+    let input: TransactionInputSummary
+    let network: MempoolNetwork
+    @State private var detail: TransactionRelations?
+    @State private var detailError: String?
+    @State private var loadingDetail = false
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                sectionCard(title: input.isCoinbase ? "Coinbase input" : "Input", subtitle: "Related transaction data") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(input.isCoinbase ? "No previous transaction" : "\(input.txid):\(input.vout)")
+                            .font(.headline.monospaced())
+                            .foregroundStyle(.primary)
+                            .textSelection(.enabled)
+                        Text("sequence \(input.sequence)")
+                            .font(.body.monospaced())
+                            .foregroundStyle(.secondary)
+                        if loadingDetail {
+                            Text("Loading related transaction data...")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        } else if let detailError {
+                            Text(detailError)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        }
+                    }
+                }
+
+                if let detail {
+                    sectionCard(title: "Inputs", subtitle: "Referenced inputs") {
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach(Array(detail.inputs.enumerated()), id: \.offset) { _, relatedInput in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(relatedInput.isCoinbase ? "Coinbase input" : "\(relatedInput.txid):\(relatedInput.vout)")
+                                        .font(.body.monospaced())
+                                        .foregroundStyle(.primary)
+                                    Text("sequence \(relatedInput.sequence)")
+                                        .font(.body)
+                                        .foregroundStyle(.secondary)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(Color(.systemBackground))
+                                )
+                            }
+                        }
+                    }
+
+                    sectionCard(title: "Outputs", subtitle: "Output scripts and values") {
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(Array(detail.outputs.enumerated()), id: \.offset) { _, output in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("#\(output.index) \(output.value) sats")
+                                        .font(.body.monospaced())
+                                        .foregroundStyle(.primary)
+                                    Text(output.scriptPubkeyHex)
+                                        .font(.body.monospaced())
+                                        .foregroundStyle(.secondary)
+                                        .textSelection(.enabled)
+                                }
+                                .padding()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(Color(.systemBackground))
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+        }
+        .scrollIndicators(.hidden)
+        .background(Color(.systemGroupedBackground))
+        .navigationTitle("Input Detail")
+        .task(id: input.txid) {
+            await pollRelatedTransaction()
+        }
+    }
+
+    @MainActor
+    private func pollRelatedTransaction() async {
+        guard !input.isCoinbase else {
+            loadingDetail = false
+            detail = nil
+            detailError = "Coinbase inputs do not reference a previous transaction."
+            return
+        }
+
+        let urls = network.transactionHexURLs(txid: input.txid)
+        guard !urls.isEmpty else {
+            detailError = "No public transaction hex feed for \(network.displayName)."
+            return
+        }
+
+        loadingDetail = true
+
+        while !Task.isCancelled {
+            await refreshRelatedTransaction(urls: urls)
+
+            do {
+                try await Task.sleep(nanoseconds: recentTransactionsPollIntervalSeconds * 1_000_000_000)
+            } catch {
+                break
+            }
+        }
+    }
+
+    @MainActor
+    private func refreshRelatedTransaction(urls: [URL]) async {
+        var lastError: Error?
+
+        for url in urls {
+            do {
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let hex = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+                detail = transactionRelationsHex(rawHex: hex)
+                detailError = nil
+                lastError = nil
+                loadingDetail = false
+                return
+            } catch {
+                lastError = error
+            }
+        }
+
+        if let lastError {
+            if detail == nil {
+                detailError = "Failed to load related transaction data: \(lastError.localizedDescription)"
+            } else {
+                detailError = "Showing cached detail while retrying: \(lastError.localizedDescription)"
+            }
+        }
+
+        loadingDetail = false
+    }
+
+    private func sectionCard<Content: View>(
+        title: String,
+        subtitle: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.title3.bold())
+                    .foregroundStyle(.primary)
+                Text(subtitle)
+                    .font(.body)
+                    .foregroundStyle(.secondary)
+            }
+
+            content()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.secondarySystemGroupedBackground))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(Color.accentColor.opacity(0.18), lineWidth: 1)
+        )
     }
 }
 
