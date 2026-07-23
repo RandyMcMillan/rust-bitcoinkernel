@@ -1,5 +1,5 @@
 use bitcoinkernel::prelude::*;
-use bitcoinkernel::{Block, ChainParams, ChainType, Transaction};
+use bitcoinkernel::{Block, ChainParams, ChainType, Transaction, TxCheckResult};
 
 uniffi::setup_scaffolding!();
 
@@ -49,6 +49,17 @@ pub struct TransactionRelations {
     pub serialized_len: u64,
     pub inputs: Vec<TransactionInputSummary>,
     pub outputs: Vec<TransactionOutputSummary>,
+}
+
+#[derive(uniffi::Record)]
+pub struct TransactionValidationSummary {
+    pub txid: String,
+    pub is_valid: bool,
+    pub validation_result: String,
+    pub message: String,
+    pub input_count: u64,
+    pub output_count: u64,
+    pub serialized_len: u64,
 }
 
 #[uniffi::export]
@@ -109,6 +120,39 @@ pub fn transaction_relations_hex(raw_hex: String) -> Option<TransactionRelations
         serialized_len,
         inputs,
         outputs,
+    })
+}
+
+#[uniffi::export]
+pub fn transaction_validation_hex(raw_hex: String) -> Option<TransactionValidationSummary> {
+    let transaction = decode_transaction(&raw_hex)?;
+    let serialized_len = transaction.consensus_encode().ok()?.len() as u64;
+    let txid = transaction.txid().to_string();
+
+    let (is_valid, validation_result, message) = match transaction.check() {
+        TxCheckResult::Valid => (
+            true,
+            "Valid".to_string(),
+            "Rust consensus checks passed.".to_string(),
+        ),
+        TxCheckResult::Invalid(result) => {
+            let validation_result = format!("{result:?}");
+            (
+                false,
+                validation_result.clone(),
+                format!("Rust consensus checks failed: {validation_result}"),
+            )
+        }
+    };
+
+    Some(TransactionValidationSummary {
+        txid,
+        is_valid,
+        validation_result,
+        message,
+        input_count: transaction.input_count() as u64,
+        output_count: transaction.output_count() as u64,
+        serialized_len,
     })
 }
 

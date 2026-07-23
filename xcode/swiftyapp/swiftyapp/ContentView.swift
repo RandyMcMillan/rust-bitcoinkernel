@@ -102,6 +102,11 @@ private struct TransactionDetailView: View {
     let network: MempoolNetwork
     @State private var detail: TransactionRelations?
     @State private var detailError: String?
+    @State private var rawHex: String?
+    @State private var validation: TransactionValidationSummary?
+    @State private var validationError: String?
+    @State private var loadingValidation = false
+    @State private var checkingSummary = false
     @State private var loadingDetail = false
     @State private var selectedInputDetail: InputSelection?
     @State private var selectedOutputDetail: OutputSelection?
@@ -136,6 +141,54 @@ private struct TransactionDetailView: View {
                             detailRow(title: "Inputs", value: "\(detail.inputCount)")
                             detailRow(title: "Outputs", value: "\(detail.outputCount)")
                             detailRow(title: "Serialized size", value: "\(detail.serializedLen) bytes")
+                        }
+                    }
+                }
+
+                sectionCard(title: "Validation", subtitle: "Manual Rust-backed checks") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Button {
+                                Task { await validateTransactionInRust() }
+                            } label: {
+                                Label("Validate transaction", systemImage: "checkmark.seal")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .disabled(rawHex == nil || loadingValidation)
+
+                            Button {
+                                Task { await checkTransactionSummaryInRust() }
+                            } label: {
+                                Label("Check summary", systemImage: "doc.text.magnifyingglass")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(rawHex == nil || checkingSummary)
+                        }
+
+                        if loadingValidation {
+                            Text("Running Rust transaction validation...")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        } else if checkingSummary {
+                            Text("Checking the transaction summary in Rust...")
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        } else if let validationError {
+                            Text(validationError)
+                                .font(.body)
+                                .foregroundStyle(.primary)
+                        }
+
+                        if let validation {
+                            VStack(alignment: .leading, spacing: 6) {
+                                detailRow(title: "Result", value: validation.validationResult)
+                                detailRow(title: "Status", value: validation.isValid ? "Valid" : "Invalid")
+                                Text(validation.message)
+                                    .font(.body)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -334,6 +387,7 @@ private struct TransactionDetailView: View {
             do {
                 let (data, _) = try await URLSession.shared.data(from: url)
                 let hex = String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)
+                rawHex = hex
                 detail = transactionRelationsHex(rawHex: hex)
                 detailError = nil
                 lastError = nil
@@ -353,6 +407,45 @@ private struct TransactionDetailView: View {
         }
 
         loadingDetail = false
+    }
+
+    @MainActor
+    private func validateTransactionInRust() async {
+        guard let rawHex else { return }
+        loadingValidation = true
+        validationError = nil
+
+        defer {
+            loadingValidation = false
+        }
+
+        validation = transactionValidationHex(rawHex: rawHex)
+        if validation == nil {
+            validationError = "Rust validation failed to decode the transaction."
+        }
+    }
+
+    @MainActor
+    private func checkTransactionSummaryInRust() async {
+        guard let rawHex else { return }
+        checkingSummary = true
+        validationError = nil
+
+        defer {
+            checkingSummary = false
+        }
+
+        guard let summary = transactionSummaryHex(rawHex: rawHex) else {
+            validationError = "Rust summary check failed to decode the transaction."
+            return
+        }
+
+        let expectedTxid = transaction.txid
+        if summary.txid == expectedTxid {
+            validationError = nil
+        } else {
+            validationError = "Rust summary txid mismatch: \(summary.txid) != \(expectedTxid)"
+        }
     }
 }
 
